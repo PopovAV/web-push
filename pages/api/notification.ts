@@ -1,13 +1,13 @@
+import { NextApiRequest, NextApiResponse } from 'next'
 import webPush from 'web-push'
-import 'dotenv/config';
 
 webPush.setVapidDetails(
   `mailto:{process.env.WEB_PUSH_EMAIL}`,
-  process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY,
-  process.env.WEB_PUSH_PRIVATE_KEY
+  process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY??"",
+  process.env.WEB_PUSH_PRIVATE_KEY??""
 )
 
-function Notification(req : any, res : any) {
+async function  Notification(req : NextApiRequest, res : NextApiResponse) {
   if (req.method == 'POST') {
     const { subscription } = req.body
 
@@ -17,7 +17,8 @@ function Notification(req : any, res : any) {
         JSON.stringify({ title: 'Hello Web Push', message: 'Your web push notification is here!' })
       )
       .then(response => {
-        res.writeHead(response.statusCode, response.headers).end(response.body)
+        res.writeHead(response.statusCode, response.headers)
+        .write(response.body)
       })
       .catch(err => {
         if ('statusCode' in err) {
@@ -32,6 +33,7 @@ function Notification(req : any, res : any) {
     res.statusCode = 405
     res.end()
   }
+  return Promise.resolve();
 }
 
 export default Notification
