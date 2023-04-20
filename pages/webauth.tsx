@@ -1,4 +1,3 @@
-import Box, { BoxProps } from '@mui/material/Box';
 import Container from '../components/Container';
 import CardMedia from '@mui/material/CardMedia';
 import CssBaseline from '@mui/material/CssBaseline';
