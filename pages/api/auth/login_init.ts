@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { AuthInitResp, auth_init } from '../../../libs/opaque'
 import  serverEnv  from './serverEnv'
-import { NextResponse } from 'next/server'
 
 type InitData = {
   username: string

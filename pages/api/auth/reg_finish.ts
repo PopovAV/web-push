@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { register_finish, FinishResp, AuthFinishResp } from '../../../libs/opaque'
+import { register_finish, FinishResp } from '../../../libs/opaque'
 import  serverEnv  from './serverEnv'
 
 type InitData = {
