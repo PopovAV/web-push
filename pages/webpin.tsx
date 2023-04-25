@@ -1,33 +1,25 @@
-import { Alert, Box, Button, Snackbar, Stack, Switch, TextField } from '@mui/material';
+import { Box, Button, Snackbar, Stack, Switch, TextField } from '@mui/material';
 import Container from '../components/Container';
 import { useState } from 'react';
 import {
 
     KE1,
     KE2,
-    KE3,
     OpaqueClient,
     OpaqueID,
-    OpaqueServer,
-    RegistrationClient,
-    RegistrationRecord,
     RegistrationRequest,
     RegistrationResponse,
-    RegistrationServer,
     getOpaqueConfig
 } from '@cloudflare/opaque-ts'
 
-export default function webpin() {
+const Webpin = () => {
 
     const server_identity = 'PWA OPAQUE demo'
 
     const [isRegistred, setIsReistred] = useState(false)
-
     const [pin, setPin] = useState("");
-
     const [login, setLogin] = useState("");
-
-    const [result, showResult] = useState("")
+    const [result, setResult] = useState("")
 
     const SwitchMode = async (event: { preventDefault: () => void }) => {
         event.preventDefault()
@@ -35,7 +27,7 @@ export default function webpin() {
     }
 
     const ShowResult = (text: any) => {
-        showResult(JSON.stringify());
+        setResult(JSON.stringify(text));
         console.log(text);
     }
 
@@ -69,7 +61,7 @@ export default function webpin() {
         const envelope = RegistrationResponse.deserialize(cfg, result['envelope']);
 
         const registration = await client.registerFinish(envelope, server_identity, login);
-       
+
         if (registration instanceof Error) {
             ShowResult('sealing of registration envelope failure');
             return;
@@ -144,10 +136,6 @@ export default function webpin() {
         ShowResult("sucscessfyly");
     }
 
-    const handleClose = ()=>{
-        showResult("");
-    }
-
     return (
         <Container title="opaque">
 
@@ -174,7 +162,7 @@ export default function webpin() {
                     <Snackbar
                         open={!!result}
                         autoHideDuration={6000}
-                        onClose={handleClose}
+                        onClose={()=> setResult("")}
                         message={result}
                     />
                 </Stack>
@@ -183,3 +171,5 @@ export default function webpin() {
     )
 
 }
+
+export default Webpin
