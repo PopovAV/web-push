@@ -17,6 +17,11 @@ const MENU_OPTIONS: MenuOption[] = [
     icon: AccountBox,
     url: "/webauth",
   },
+  {
+    name: "WebPin",
+    icon: AccountBox,
+    url: "/webpin",
+  },
 ];
 
 export type MenuItem = {

@@ -11,6 +11,7 @@ export const Container = styled.div`
 export const Content = styled.div`
   display: flex;
   flex: 1;
+  paddding:10
 `;
 
 export const PageContainer = styled.div`

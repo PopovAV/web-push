@@ -9,10 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@cloudflare/opaque-ts": "^0.7.5",
     "@emotion/react": "^11.10.6",
     "@emotion/styled": "^11.10.6",
     "@mui/material": "^5.12.1",
     "@styled-icons/material": "^10.34.0",
+    "cookie": "^0.5.0",
+    "ioredis": "^5.3.2",
     "next": "^12.3.4",
     "next-pwa": "^5.6.0",
     "react": "^17.0.2",
@@ -21,11 +24,13 @@
     "web-push": "^3.5.0"
   },
   "devDependencies": {
-    "@types/node": "^18.15.11",
+    "@types/cookie": "^0.5.1",
+    "@types/node": "^18.16.0",
     "@types/react": "^18.0.37",
     "@types/styled-components": "^5.1.26",
     "@types/web-push": "^3.3.2",
     "@types/workbox-sw": "^4.3.3",
+    "@upstash/redis": "^1.20.4",
     "eslint": "^8.22.0",
     "eslint-config-next": "12.2.5",
     "typescript": "^5.0.4"
