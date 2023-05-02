@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  Dashboard,
   AccountBox,
   SendToMobile
 } from "@styled-icons/material";

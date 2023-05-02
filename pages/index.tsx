@@ -4,7 +4,7 @@ import Container from "../components/Container";
 const Home: NextPage = () => {
   return (
     <Container title="Dashboard">
-      <div>Dashboard</div>
+      <div>Select action from menu for test</div>
     </Container>
   );
 };

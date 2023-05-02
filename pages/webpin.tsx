@@ -1,4 +1,4 @@
-import { Box, Button, Snackbar, Stack, Switch, TextField } from '@mui/material';
+import { Alert, Button, FormControlLabel, Snackbar, Stack, Switch, TextField } from '@mui/material';
 import Container from '../components/Container';
 import { useState } from 'react';
 import {
@@ -16,21 +16,27 @@ const Webpin = () => {
 
     const server_identity = 'PWA OPAQUE demo'
 
-    const [isRegistred, setIsReistred] = useState(false)
+    const [{ isRegistred, text }, setIsRegistred] = useState({ isRegistred: false, text: "Login" })
     const [pin, setPin] = useState("");
     const [login, setLogin] = useState("");
-    const [result, setResult] = useState("")
+    const [{ result, isError }, setResult] = useState({ result: "", isError: false })
 
     const SwitchMode = async (event: { preventDefault: () => void }) => {
         event.preventDefault()
-        setIsReistred(!isRegistred)
+        let text = isRegistred ? "Login" : "Register"
+        setIsRegistred({ isRegistred: !isRegistred, text: text })
     }
 
-    const ShowResult = (text: any) => {
-        setResult(JSON.stringify(text));
-        console.log(text);
+    const ShowResult = (res: any, error: boolean = false) => {
+        let newResult = typeof res == "string" ? res : JSON.stringify(res, null, 2);
+        setResult({ result: newResult, isError: !!error });
+        console.log(newResult);
     }
 
+
+    async function сlick(event: { preventDefault: () => void; }) {
+        await (isRegistred ? sendReg(event) : sendLogin(event))
+    }
 
     async function sendReg(event: { preventDefault: () => void; }) {
 
@@ -54,7 +60,7 @@ const Webpin = () => {
         if (response.status == 200)
             result = await response.json();
         else {
-            ShowResult(await response.json());
+            ShowResult(await response.json(), true);
             return;
         }
 
@@ -63,7 +69,7 @@ const Webpin = () => {
         const registration = await client.registerFinish(envelope, server_identity, login);
 
         if (registration instanceof Error) {
-            ShowResult('sealing of registration envelope failure');
+            ShowResult('Error: ' + registration.message, true);
             return;
         }
 
@@ -75,11 +81,13 @@ const Webpin = () => {
         });
         if (response.status == 200) {
             result = await response.json();
-            setIsReistred(true)
+            let ev = { preventDefault: () => { } }
+            SwitchMode(ev)
             ShowResult(result)
         }
         else {
-            ShowResult(await response.json());
+            let errorResp = await response.json()
+            ShowResult('Error: ' + errorResp.message, true);
         }
 
     }
@@ -91,8 +99,6 @@ const Webpin = () => {
         const client = new OpaqueClient(cfg);
 
         const authInit = await client.authInit(pin);
-
-        console.log(authInit);
 
         // for network traffic
         let response: Response, result;
@@ -108,15 +114,18 @@ const Webpin = () => {
         if (response.status == 200)
             result = await response.json();
         else {
-            ShowResult(await response.text());
+            ShowResult(await response.json());
             return;
         }
 
         const ke2 = KE2.deserialize(cfg, result['ke2'])
 
         const authFinish = await client.authFinish(ke2, server_identity, login)
-        if (authFinish instanceof Error)
-            throw authFinish
+        if (authFinish instanceof Error) {
+            ShowResult('Error: ' + authFinish.message, true);
+            return;
+        }
+
 
         const { ke3, session_key } = authFinish
 
@@ -126,47 +135,43 @@ const Webpin = () => {
             body: JSON.stringify({ username: login, ke3: ke3.serialize(), session_key: JSON.stringify(session_key) })
         })
 
-        if (response.status == 200)
+        if (response.status == 200) {
             result = await response.json()
+            ShowResult(result);
+        }
         else
-            ShowResult(await response.text())
+            ShowResult(await response.json())
 
-        // show success message
-
-        ShowResult("sucscessfyly");
     }
 
     return (
         <Container title="opaque">
-
-            <Box sx={{
-                width: 300,
-                height: 300,
-                justifyContent: 'center',
-                margin: 10
-            }}>
-
-                <Switch
-                    checked={isRegistred}
-                    onChange={SwitchMode}
-                    inputProps={{ 'aria-label': 'controlled' }}
-                />
-                <Stack>
-                    <TextField id="login" label="Login" variant="standard" onChange={(e) => setLogin(e.target.value)} />
-                    <TextField id="pin" label="Pin" variant="standard" onChange={(e) => setPin(e.target.value)} />
-                    {!isRegistred
-                        ? <Button onClick={sendReg}> Register </Button>
-                        : <Button onClick={sendLogin}> Login </Button>
-                    }
-
-                    <Snackbar
-                        open={!!result}
-                        autoHideDuration={6000}
-                        onClose={()=> setResult("")}
-                        message={result}
+            <FormControlLabel
+                control={
+                    <Switch
+                        checked={isRegistred}
+                        onChange={SwitchMode}
+                        inputProps={{ 'aria-label': 'controlled' }}
                     />
-                </Stack>
-            </Box>
+                }
+                label={text}
+            />
+
+
+            <Stack margin={"10%"}>
+                <TextField id="login" label="UseName" variant="standard" onChange={(e) => setLogin(e.target.value)} />
+                <TextField id="pin" label="Pin" variant="standard" onChange={(e) => setPin(e.target.value)} />
+                <Button onClick={сlick}>Send</Button>
+            </Stack>
+            <Snackbar
+                open={!!result}
+                autoHideDuration={6000}
+                onClose={() => setResult({ result: '', isError: false })}>
+                <Alert severity={!isError ? "success" : "error"} sx={{ width: '100%' }}>
+                    {result}
+                </Alert>
+            </Snackbar>
+
         </Container>
     )
 

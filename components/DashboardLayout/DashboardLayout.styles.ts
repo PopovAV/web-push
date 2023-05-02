@@ -15,6 +15,6 @@ export const Content = styled.div`
 `;
 
 export const PageContainer = styled.div`
-  padding: 0vm;
+  padding: 0vw;
   width: 100vw;
 `;
