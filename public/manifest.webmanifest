@@ -6,7 +6,7 @@
   "theme_color": "#FFFFFF",
   "background_color": "#FFFFFF",
   "start_url": "/",
-  "id":"/",
+  "id":"?homescreen=1",
   "icons": [
     {
       "src": "/icons/android-chrome-192x192.png",
