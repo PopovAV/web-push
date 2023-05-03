@@ -7,6 +7,11 @@ import {
 
 const MENU_OPTIONS: MenuOption[] = [
   {
+    name: "ThingerPrint",
+    icon: SendToMobile,
+    url: "/",
+  },
+  {
     name: "WebPush",
     icon: SendToMobile,
     url: "/webpush",
