@@ -7,9 +7,12 @@ webPush.setVapidDetails(
   process.env.WEB_PUSH_PRIVATE_KEY??""
 )
 
+
 async function  Notification(req : NextApiRequest, res : NextApiResponse) {
   if (req.method == 'POST') {
     const { subscription } = req.body
+
+    console.log(subscription);
 
     webPush
       .sendNotification(
