@@ -12,7 +12,8 @@ const securityHeaders = [
 const withPWA = require('next-pwa')({
   dest: 'public',
   cacheOnFrontEndNav:false,
-  disable: process.env.NODE_ENV !== 'production'
+  disable: process.env.NODE_ENV === 'development',
+  register: true,
 })
 
 

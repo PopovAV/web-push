@@ -18,9 +18,9 @@ self.addEventListener('notificationclick', function (event) {
   }).then(function (clientList) {
     if (clientList.length > 0) {
       let client = clientList[0];
-      for (let i = 0; i < clientList.length; i++) {
-        if (clientList[i].focused) {
-          client = clientList[i];
+      for (const element of clientList) {
+        if (element.focused) {
+          client = element;
         }
       }
       return client.focus();

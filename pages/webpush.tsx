@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Container from '../components/Container'
 import Button from '@mui/material/Button';
-import { Stack } from '@mui/material';
+import { Alert, Snackbar, Stack, Typography } from '@mui/material';
 
 const base64ToUint8Array = (base64: string | any[]) => {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4)
@@ -22,31 +22,49 @@ const Index = () => {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | undefined>(undefined)
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'workbox' in window) {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       // run only in browser
       navigator.serviceWorker.ready.then(reg => {
+
+        setRegistration(reg);
+
+        console.log('get sw registration')
+
         reg.pushManager.getSubscription().then(sub => {
           if (sub != null && !(sub.expirationTime && Date.now() > sub.expirationTime - 5 * 60 * 1000)) {
             setSubscription(sub)
             setIsSubscribed(true)
           }
         })
-        setRegistration(reg)
+
       })
     }
   }, [])
 
   const subscribeButtonOnClick = async (event: { preventDefault: () => void }) => {
     event.preventDefault()
-    const sub = await registration?.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: base64ToUint8Array(process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY ?? "")
-    })
-    // TODO: you should call your API to save subscription data on server in order to send web push notification from server
-    setSubscription(sub)
-    setIsSubscribed(true)
-    console.log('web push subscribed!')
-    console.log(sub)
+
+    if (registration == undefined) return
+
+    console.log(process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY);
+
+    try {
+      const sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: base64ToUint8Array(process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY ?? "")
+      })
+      if (sub != null) {
+        // TODO: you should call your API to save subscription data on server in order to send web push notification from server
+        setSubscription(sub)
+        setIsSubscribed(true)
+        ShowResult(sub)
+      }
+
+    } catch (e: any) {
+      ShowResult('error get subscription : ' + e.message, true)
+    }
+
+
   }
 
   const unsubscribeButtonOnClick = async (event: { preventDefault: () => void }) => {
@@ -55,17 +73,17 @@ const Index = () => {
     // TODO: you should call your API to delete or invalidate subscription data on server
     setSubscription(undefined)
     setIsSubscribed(false)
-    console.log('web push unsubscribed!')
+    ShowResult('web push unsubscribed!')
   }
 
   const sendNotificationButtonOnClick = async (event: { preventDefault: () => void }) => {
     event.preventDefault()
     if (subscription == null) {
-      console.error('web push not subscribed')
+      ShowResult('web push not subscribed', true);
       return
     }
 
-    await fetch('/api/notification', {
+    const response = await fetch('/api/notification', {
       method: 'POST',
       headers: {
         'Content-type': 'application/json'
@@ -74,12 +92,33 @@ const Index = () => {
         subscription
       })
     })
+    if (response.status == 200)
+      ShowResult(subscription)
+    else {
+      ShowResult(await response.json(), true);
+    }
+
+
+  }
+
+  const [{ result, isError }, setResult] = useState({ result: "", isError: false })
+
+  const ShowResult = (res: any, error: boolean = false) => {
+    let newResult = typeof res == "string" ? res : JSON.stringify(res, null, 2);
+    if (newResult != '') {
+      if (!error) {
+        console.info(newResult)
+      } else if (error) {
+        console.error(newResult)
+      }
+    }
+    setResult({ result: newResult, isError: !!error });
   }
 
   return (
     <Container title='WebPush'>
-      <Stack>
-        <Button onClick={subscribeButtonOnClick} disabled={isSubscribed}>
+      <Stack >
+        <Button onClick={subscribeButtonOnClick} disabled={isSubscribed || registration == undefined}>
           Subscribe
         </Button>
         <Button onClick={unsubscribeButtonOnClick} disabled={!isSubscribed}>
@@ -89,7 +128,16 @@ const Index = () => {
           Send Notification
         </Button>
       </Stack>
+      <Snackbar
+          open={!!result}
+          autoHideDuration={6000}
+          onClose={() => setResult({ result: '', isError: false })}>
+          <Alert severity={!isError ? "success" : "error"} >
+            {result}
+          </Alert>
+        </Snackbar>
     </Container>
+    
   )
 }
 
