@@ -5,7 +5,18 @@ self.addEventListener('push', function (event) {
   event.waitUntil(
     registration.showNotification(data.title, {
       body: data.message,
-      icon: '/icons/android-chrome-192x192.png'
+      icon: '/icons/android-chrome-192x192.png',
+      actions: [
+        {
+            action: "view-content",
+            title: "Yes"
+        },
+        {
+            action: "go-home",
+            title: "No"
+        }
+      ],
+      vibrate : [300, 100, 400]
     })
   )
 })

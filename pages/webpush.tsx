@@ -95,7 +95,7 @@ const Index = () => {
     if (response.status == 200)
       ShowResult(subscription)
     else {
-      ShowResult(await response.json(), true);
+      ShowResult(await response.text(),true);
     }
 
 
