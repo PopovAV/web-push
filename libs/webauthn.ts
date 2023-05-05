@@ -104,9 +104,6 @@ async function getUserId(username: string): Promise<string> {
 
 
 export async function get_reg_options(username: string): Promise<PublicKeyCredentialCreationOptionsJSON> {
-  // (Pseudocode) Retrieve the user from the database
-  // after they've logged in
-
   const userId = await getUserId(username)
 
   let user: UserModel = await getUserFromDB(userId);
@@ -118,8 +115,6 @@ export async function get_reg_options(username: string): Promise<PublicKeyCreden
     }
   }
 
-  // (Pseudocode) Retrieve any of the user's previously-
-  // registered authenticators
   const userAuthenticators: Authenticator[] = await getUserAuthenticators(user)??[]
 
   const options = generateRegistrationOptions({
@@ -139,7 +134,6 @@ export async function get_reg_options(username: string): Promise<PublicKeyCreden
     })),
   });
 
-  // (Pseudocode) Remember the challenge for this user
   await setUserCurrentChallenge(user, options.challenge);
 
   return options;
@@ -149,9 +143,8 @@ export async function verify_reg(username :string, body : any): Promise<Verified
 
   const userId = await getUserId(username)
 
-  // (Pseudocode) Retrieve the logged-in user
   const user: UserModel = await getUserFromDB(userId);
-  // (Pseudocode) Get `options.challenge` that was saved above
+
   const expectedChallenge: string = user.currentChallenge ?? "";
 
   let verification;
@@ -208,7 +201,6 @@ export async function get_auth_options(username: string): Promise<PublicKeyCrede
     userVerification: 'preferred',
   });
 
-  // (Pseudocode) Remember this challenge for this user
   setUserCurrentChallenge(user, options.challenge);
 
   return options;

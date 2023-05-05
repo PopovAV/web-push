@@ -34,6 +34,11 @@ const WebAuthN =  () => {
         let opt
         try {
             opt = await resp.json()
+
+            if(resp.status == 400){
+                throw new Error(opt.error)
+            }
+            
             // Pass the options to the authenticator and wait for a response
             attResp = await startRegistration(opt);
         } catch (error: any) {
@@ -59,7 +64,7 @@ const WebAuthN =  () => {
 
         // Show UI appropriate for the `verified` status
         if (verificationJSON && verificationJSON.verified) {
-            ShowResult("succsess")
+            ShowResult(verificationJSON)
         } else {
             ShowResult(verificationJSON, true)
         };
