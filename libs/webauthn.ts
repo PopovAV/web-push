@@ -49,7 +49,7 @@ type Authenticator = {
 // Human-readable title for your website
 const rpName = 'SimpleWebAuthn';
 // A unique identifier for your website
-const rpID = `${process.env.VERCEL_URL}`;
+const rpID = `${process.env.HOST_NAME}`;
 // The URL at which registrations and authentications should occur
 const origin = `https://${rpID}${process.env.CUSTOM_PORT??""}`;
 
