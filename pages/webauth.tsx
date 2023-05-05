@@ -9,7 +9,7 @@ const webauth = function () {
         <Container title='webauth' >
           <CssBaseline/>
           <CardMedia component="iframe"
-             src='https://webauthn.me/' allow="publickey-credentials-get *"  allowFullScreen height="100%" scrolling='none' ></CardMedia>
+             src='https://webauthn.io/' allow="publickey-credentials-get *"  allowFullScreen height="100%" scrolling='none' ></CardMedia>
         </Container>
     )
 
