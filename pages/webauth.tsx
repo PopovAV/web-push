@@ -1,18 +1,30 @@
+import { TextField } from '@mui/material';
 import Container from '../components/Container';
 import CardMedia from '@mui/material/CardMedia';
-import CssBaseline from '@mui/material/CssBaseline';
+import { useState } from 'react';
 
 
-const webauth = function () {
+const Webauth = function () {
+
+    const [url, setUrl] = useState("https://webauthn.me");
+
+    function OnkeyPresset(ev:any) {
+        if (ev.key === 'Enter') {
+            // Do code here
+            ev.preventDefault();
+            setUrl(ev.target.value)
+        }
+    }
 
     return (
         <Container title='webauth' >
-          <CssBaseline/>
-          <CardMedia component="iframe"
-             src='https://webauthn.io/' allow="publickey-credentials-get *"  allowFullScreen height="100%" scrolling='none' ></CardMedia>
+            <TextField id="url" label="url" fullWidth  onKeyUp={OnkeyPresset} defaultValue={url} margin="dense" />
+            <CardMedia component="iframe"
+                src={url} allow="publickey-credentials-get *" allowFullScreen height="100%" scrolling='none' ></CardMedia>
+            
         </Container>
     )
 
 }
 
-export default webauth;
+export default Webauth;

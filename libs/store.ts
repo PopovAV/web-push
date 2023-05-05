@@ -50,3 +50,11 @@ export function notNullHexString(x: unknown): string {
 export function notNullHex(x: unknown): Uint8Array {
     return typeof x === 'string' ? fromHex(x) : new Uint8Array(0)
 }
+
+export function tob64(x: Uint8Array): string {
+    return Buffer.from(x).toString("base64")
+}
+
+export function fromb64(x: string): Uint8Array {
+    return Uint8Array.from(Buffer.from(x, 'base64'));
+}

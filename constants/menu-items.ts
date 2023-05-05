@@ -17,9 +17,14 @@ const MENU_OPTIONS: MenuOption[] = [
     url: "/webpush",
   },
   {
-    name: "WebAuth",
+    name: "WebAuthExt",
     icon: AccountBox,
     url: "/webauth",
+  },
+  {
+    name: "WebAuthN",
+    icon: AccountBox,
+    url: "/webauthn",
   },
   {
     name: "WebPin",
