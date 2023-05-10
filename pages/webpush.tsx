@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Container from '../components/Container'
 import Button from '@mui/material/Button';
-import { Alert, Snackbar, Stack, Typography } from '@mui/material';
+import { Alert, Snackbar, Stack } from '@mui/material';
 
 const base64ToUint8Array = (base64: string | any[]) => {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4)
@@ -15,6 +15,9 @@ const base64ToUint8Array = (base64: string | any[]) => {
   }
   return outputArray
 }
+
+
+
 
 const Index = () => {
   const [isSubscribed, setIsSubscribed] = useState(false)
@@ -57,7 +60,7 @@ const Index = () => {
         // TODO: you should call your API to save subscription data on server in order to send web push notification from server
         setSubscription(sub)
         setIsSubscribed(true)
-        ShowResult(sub)
+        ShowResult('web push subscribed!')
       }
 
     } catch (e: any) {
@@ -93,7 +96,7 @@ const Index = () => {
       })
     })
     if (response.status == 200)
-      ShowResult(subscription)
+      ShowResult("push sended")
     else {
       ShowResult(await response.text(),true);
     }
@@ -127,15 +130,18 @@ const Index = () => {
         <Button onClick={sendNotificationButtonOnClick} disabled={!isSubscribed}>
           Send Notification
         </Button>
-      </Stack>
-      <Snackbar
+        <pre >{ JSON.stringify(subscription,null, 2)}</pre >
+        <Snackbar
           open={!!result}
           autoHideDuration={6000}
           onClose={() => setResult({ result: '', isError: false })}>
           <Alert severity={!isError ? "success" : "error"} >
-            {result}
+            { result } 
           </Alert>
         </Snackbar>
+      </Stack>
+ 
+
     </Container>
     
   )
