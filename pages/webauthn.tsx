@@ -1,13 +1,36 @@
 import { Alert, Button, FormControlLabel, Snackbar, Stack, Switch, TextField } from '@mui/material';
 import Container from '../components/Container';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
+import { useSession } from 'next-auth/react';
+import { NextPage } from 'next';
+import { authOptions } from './api/auth/[...nextauth]'
+import { getServerSession } from "next-auth/next"
 
-const WebAuthN =  () => {
+export async function getServerSideProps(context:any) {
+  const session = await getServerSession(context.req, context.res, authOptions)
+
+  return {
+    props: {
+      session,
+    },
+  }
+}
+
+const WebAuthN: NextPage = () => {
+
+    const { update, data: session, status } = useSession()
+
+    useEffect(() => {
+        if (status === "authenticated") {
+            console.log(session.user)
+            setLogin(session?.user?.email)
+        }
+    }, [update])
 
     const [{ isRegistred, text }, setIsRegistred] = useState({ isRegistred: false, text: "Login" })
-    const [login, setLogin] = useState("");
+    const [login, setLogin] = useState(session?.user?.email);
     const [{ result, isError }, setResult] = useState({ result: "", isError: false })
 
     const SwitchMode = async (event: { preventDefault: () => void }) => {
@@ -27,27 +50,31 @@ const WebAuthN =  () => {
     }
 
     async function sendReg(event: { preventDefault: () => void; }) {
-        
-        const resp = await fetch('/api/authn/get_reg_options/'+ login);
+
+        const resp = await fetch('/api/authn/get_reg_options/' + login, { cache: 'no-store' });
 
         let attResp;
         let opt
         try {
+
             opt = await resp.json()
 
-            if(resp.status == 400){
+            if (resp.status == 400) {
+                console.log(opt)
                 throw new Error(opt.error)
             }
-            
+
             // Pass the options to the authenticator and wait for a response
             attResp = await startRegistration(opt);
+
         } catch (error: any) {
             // Some basic error handling
             if (error.name === 'InvalidStateError') {
                 ShowResult('Error: Authenticator was probably already registered by user', true);
             } else {
-                ShowResult(error, true)
+                ShowResult(error.message, true)
             }
+            return;
 
         }
 
@@ -74,10 +101,11 @@ const WebAuthN =  () => {
     async function sendLogin(event: { preventDefault: () => void; }) {
         // GET authentication options from the endpoint that calls
         // @simplewebauthn/server -> generateAuthenticationOptions()
-        const resp = await fetch(`/api/authn/get_auth_options/${login}`);
+       
 
         let asseResp;
         try {
+            const resp = await fetch(`/api/authn/get_auth_options/${login}`, { cache: 'no-store' });
             // Pass the options to the authenticator and wait for a response
             asseResp = await startAuthentication(await resp.json());
         } catch (error: any) {
@@ -122,7 +150,7 @@ const WebAuthN =  () => {
             />
 
             <Stack margin={"10%"}>
-                <TextField id="login" label="UseName" variant="standard" onChange={(e) => setLogin(e.target.value)} />
+                <TextField id="login" label="UseName" variant="standard" defaultValue={login} onChange={(e) => setLogin(e.target.value)} />
                 <Button onClick={сlick}>Send</Button>
             </Stack>
             <Snackbar

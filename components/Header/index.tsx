@@ -1,9 +1,11 @@
 import { Menu, ChevronLeft } from "@styled-icons/material";
+
 import {
   HeaderContainer,
   IconContainer,
   TitleContainer,
 } from "./Header.styles";
+import LoginBtn from "../LoginBtn";
 
 type HeaderProps = {
   isOpened: boolean;
@@ -16,7 +18,7 @@ export default function Header({ isOpened, toggleDrawer }: HeaderProps) {
       <IconContainer onClick={toggleDrawer}>
         {isOpened ? <ChevronLeft /> : <Menu />}
       </IconContainer>
-      <TitleContainer>PWATEST</TitleContainer>
+      <TitleContainer><LoginBtn/></TitleContainer>
     </HeaderContainer>
   );
 }

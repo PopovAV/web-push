@@ -14,3 +14,13 @@ a {
 * {
   box-sizing: border-box;
 }
+
+pre {
+  word-break: break-all;
+  line-break: anywhere;
+  text-align: left;
+  overflow-x: hidden;
+  flex-direction: column;
+  display: flex;
+  margin: 2%;
+}

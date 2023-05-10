@@ -21,7 +21,7 @@ export default async function handler(
   }
   try {
     const { username } = req.query;
-    let resp = await verify_auth(username as string,req.body);
+    let resp = await verify_auth(username as string, req.body);
     res.status(200).json(resp)
   }
   catch(e: any) {

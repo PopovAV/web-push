@@ -17,7 +17,7 @@ const cfg = getOpaqueConfig(
     OpaqueID.OPAQUE_P256,
 )
 
-import { KVStorage } from './store'
+import { KVStorage, toHex } from './store'
 import { CookieSerializeOptions } from 'next/dist/server/web/spec-extension/cookies'
 
 type EnvS = {
@@ -165,8 +165,8 @@ export interface AuthFinish {
 
 export interface AuthFinishResp{
     message: string
-    session_key_client: number[]
-    session_key_server: number[],
+    session_key_client: string
+    session_key_server: string,
     username: string
 }
 
@@ -205,8 +205,8 @@ async function auth_finish(request: NextApiRequest, env: EnvS,  response: NextAp
 
     return {
         message: 'login success',
-        session_key_client: session_key_client,
-        session_key_server: session_key_server,
+        session_key_client: toHex(session_key_client),
+        session_key_server: toHex(Buffer.from(session_key_server)),
         username: client_identity
     }
 }

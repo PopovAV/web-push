@@ -9,5 +9,8 @@ export const SidebarContainer = styled.aside<SidebarContainerProps>`
   transition: width 0.5s;
   overflow: hidden;
   display: flex;
+  z-index:100;
+  position:absolute;
+  height:100%;
   flex-direction: column;
 `;

@@ -186,7 +186,7 @@ export async function get_auth_options(username: string): Promise<PublicKeyCrede
 
   let user: UserModel = await getUserFromDB(userId);
  
-  if(user ==null) throw new Error(`user ${username} was not fount`)
+  if(user ==null) throw new Error(`user ${username} was not found`)
 
   const userAuthenticators: Authenticator[] = await getUserAuthenticators(user)??[];
 

@@ -18,9 +18,10 @@ export default async function handler(
     let resp = await get_auth_options(username as string);
     res.status(200).json(resp)
   }
-  catch(e: any) {
+  catch (e: any) {
     console.error(e);
-    res.status(400).json({ error: e.message })
+    res.status(400).json({ error: e.message})
+
   }
 
 }

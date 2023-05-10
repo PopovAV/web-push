@@ -1,6 +1,6 @@
 import { Alert, Button, FormControlLabel, Snackbar, Stack, Switch, TextField } from '@mui/material';
 import Container from '../components/Container';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
 
     KE1,
@@ -12,14 +12,41 @@ import {
     getOpaqueConfig
 } from '@cloudflare/opaque-ts'
 
-const Webpin = () => {
+import { useSession } from 'next-auth/react';
+import { NextPage } from 'next';
+
+import { authOptions } from './api/auth/[...nextauth]'
+import { getServerSession } from "next-auth/next"
+
+export async function getServerSideProps(context: any) {
+    const session = await getServerSession(context.req, context.res, authOptions)
+    return {
+        props: {
+            session,
+        },
+    }
+}
+
+
+const Webpin: NextPage = () => {
 
     const server_identity = 'PWA OPAQUE demo'
+    const { update, data: session, status } = useSession();
+
+    useEffect(() => {
+
+        if (status === "authenticated") {
+            setLogin(session.user?.email ?? "")
+        }
+
+    }, [update])
+
 
     const [{ isRegistred, text }, setIsRegistred] = useState({ isRegistred: false, text: "Login" })
     const [pin, setPin] = useState("");
-    const [login, setLogin] = useState("");
+    const [login, setLogin] = useState(session?.user?.email ?? "");
     const [{ result, isError }, setResult] = useState({ result: "", isError: false })
+
 
     const SwitchMode = async (event: { preventDefault: () => void }) => {
         event.preventDefault()
@@ -32,7 +59,6 @@ const Webpin = () => {
         setResult({ result: newResult, isError: !!error });
         console.log(newResult);
     }
-
 
     async function сlick(event: { preventDefault: () => void; }) {
         await (isRegistred ? sendReg(event) : sendLogin(event))
@@ -50,7 +76,7 @@ const Webpin = () => {
         let response: Response, result;
         let resp = { username: login, init: (initialization as RegistrationRequest).serialize() };
 
-        response = await fetch('/api/auth/reg_init', {
+        response = await fetch('/api/auth-opake/reg_init', {
             method: 'POST',
             headers: {
                 'Content-type': 'application/json'
@@ -74,7 +100,7 @@ const Webpin = () => {
         }
 
         const { record, export_key } = registration;
-        response = await fetch('/api/auth/reg_finish', {
+        response = await fetch('/api/auth-opake/reg_finish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: login, record: record.serialize() })
@@ -104,7 +130,7 @@ const Webpin = () => {
         let response: Response, result;
         let resp = { username: login, ke1: (authInit as KE1).serialize() };
 
-        response = await fetch('/api/auth/login_init', {
+        response = await fetch('/api/auth-opake/login_init', {
             method: 'POST',
             headers: {
                 'Content-type': 'application/json'
@@ -129,10 +155,10 @@ const Webpin = () => {
 
         const { ke3, session_key } = authFinish
 
-        response = await fetch('/api/auth/login_finish', {
+        response = await fetch('/api/auth-opake/login_finish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: login, ke3: ke3.serialize(), session_key: JSON.stringify(session_key) })
+            body: JSON.stringify({ username: login, ke3: ke3.serialize(), session_key: session_key })
         })
 
         if (response.status == 200) {
@@ -156,10 +182,8 @@ const Webpin = () => {
                 }
                 label={text}
             />
-
-
             <Stack margin={"10%"}>
-                <TextField id="login" label="UseName" variant="standard" onChange={(e) => setLogin(e.target.value)} />
+                <TextField id="login" label="UseName" variant="standard" defaultValue={login} onChange={(e) => setLogin(e.target.value)} />
                 <TextField id="pin" label="Pin" variant="standard" onChange={(e) => setPin(e.target.value)} />
                 <Button onClick={сlick}>Send</Button>
             </Stack>
