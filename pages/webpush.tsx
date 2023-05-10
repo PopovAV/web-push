@@ -131,17 +131,16 @@ const Index = () => {
           Send Notification
         </Button>
         <pre >{ JSON.stringify(subscription,null, 2)}</pre >
-        <Snackbar
+     
+      </Stack>
+      <Snackbar
           open={!!result}
           autoHideDuration={6000}
           onClose={() => setResult({ result: '', isError: false })}>
-          <Alert severity={!isError ? "success" : "error"} >
+          <Alert severity={!isError ? "success" : "error"} sx={{ width: '100%' }}>
             { result } 
           </Alert>
         </Snackbar>
-      </Stack>
- 
-
     </Container>
     
   )

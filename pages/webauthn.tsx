@@ -32,6 +32,7 @@ const WebAuthN: NextPage = () => {
     const [{ isRegistred, text }, setIsRegistred] = useState({ isRegistred: false, text: "Login" })
     const [login, setLogin] = useState(session?.user?.email);
     const [{ result, isError }, setResult] = useState({ result: "", isError: false })
+    const [ keyInfo , setKeyInfo] = useState<any>(null)
 
     const SwitchMode = async (event: { preventDefault: () => void }) => {
         event.preventDefault()
@@ -91,7 +92,7 @@ const WebAuthN: NextPage = () => {
 
         // Show UI appropriate for the `verified` status
         if (verificationJSON && verificationJSON.verified) {
-            ShowResult(verificationJSON)
+            setKeyInfo(verificationJSON)
         } else {
             ShowResult(verificationJSON, true)
         };
@@ -102,12 +103,14 @@ const WebAuthN: NextPage = () => {
         // GET authentication options from the endpoint that calls
         // @simplewebauthn/server -> generateAuthenticationOptions()
        
-
         let asseResp;
         try {
             const resp = await fetch(`/api/authn/get_auth_options/${login}`, { cache: 'no-store' });
             // Pass the options to the authenticator and wait for a response
-            asseResp = await startAuthentication(await resp.json());
+            const authOptions = await resp.json();
+            setKeyInfo(authOptions)
+            asseResp = await startAuthentication(authOptions);
+
         } catch (error: any) {
             // Some basic error handling
             ShowResult(error, true)
@@ -153,6 +156,7 @@ const WebAuthN: NextPage = () => {
                 <TextField id="login" label="UseName" variant="standard" defaultValue={login} onChange={(e) => setLogin(e.target.value)} />
                 <Button onClick={сlick}>Send</Button>
             </Stack>
+            {!!keyInfo && <pre >{ JSON.stringify(keyInfo,null, 2)}</pre >}
             <Snackbar
                 open={!!result}
                 autoHideDuration={30000}
