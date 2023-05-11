@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { get_auth_options, verify_auth } from '../../../../libs/webauthn';
+import { get_auth_options }  from '../../../../libs/webauthn';
 
 
 export default async function handler(

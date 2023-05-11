@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 const Webauth = function () {
 
-    const [url, setUrl] = useState("https://webauthn.me");
+    const [url, setUrl] = useState("https://web-push-silk.vercel.app/webauthn");
 
     function OnkeyPresset(ev:any) {
         if (ev.key === 'Enter') {

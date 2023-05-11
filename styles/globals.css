@@ -23,4 +23,5 @@ pre {
   flex-direction: column;
   display: flex;
   margin: 2%;
+  border: 1cm;
 }

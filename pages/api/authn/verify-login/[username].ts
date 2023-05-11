@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { AuthInitResp, auth_init } from '../../../../libs/opaque'
+import { AuthInitResp } from '../../../../libs/opaque'
 import { verify_auth } from '../../../../libs/webauthn'
 
 type InitData = {
@@ -22,7 +22,7 @@ export default async function handler(
   try {
     const { username } = req.query;
     let resp = await verify_auth(username as string, req.body);
-    res.status(200).json(resp)
+    res.status(200).json(resp);
   }
   catch(e: any) {
     console.error(e);

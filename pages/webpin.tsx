@@ -17,6 +17,7 @@ import { NextPage } from 'next';
 
 import { authOptions } from './api/auth/[...nextauth]'
 import { getServerSession } from "next-auth/next"
+import { toHexFromNumbers } from '../libs/store';
 
 export async function getServerSideProps(context: any) {
     const session = await getServerSession(context.req, context.res, authOptions)
@@ -45,13 +46,17 @@ const Webpin: NextPage = () => {
     const [{ isRegistred, text }, setIsRegistred] = useState({ isRegistred: false, text: "Login" })
     const [pin, setPin] = useState("");
     const [login, setLogin] = useState(session?.user?.email ?? "");
-    const [{ result, isError }, setResult] = useState({ result: "", isError: false })
+    const [{ result, isError }, setResult] = useState({ result: "", isError: false });
+    const [ logInfo , setLogInfo] = useState<any>(null);
+
+    let logBugger = logInfo??""
 
 
     const SwitchMode = async (event: { preventDefault: () => void }) => {
         event.preventDefault()
         let text = isRegistred ? "Login" : "Register"
         setIsRegistred({ isRegistred: !isRegistred, text: text })
+
     }
 
     const ShowResult = (res: any, error: boolean = false) => {
@@ -60,8 +65,28 @@ const Webpin: NextPage = () => {
         console.log(newResult);
     }
 
+    const AddLog = (dir:string , message:any, final: boolean = false)=>{
+        logBugger = logBugger + "\r\n" + dir;
+        let obj;
+
+        if(typeof message == "string" && message[0]== '{'){
+            obj = JSON.parse(message)
+        }
+        else{
+            obj = message;
+        }
+
+        logBugger += JSON.stringify(obj, (key, value)=>Array.isArray(value)? toHexFromNumbers(value.map(Number)) : value ,2)
+       
+    }
+
     async function сlick(event: { preventDefault: () => void; }) {
+        
+        logBugger = "";
+
         await (isRegistred ? sendReg(event) : sendLogin(event))
+       
+        setLogInfo(logBugger)
     }
 
     async function sendReg(event: { preventDefault: () => void; }) {
@@ -75,20 +100,27 @@ const Webpin: NextPage = () => {
         // for network traffic
         let response: Response, result;
         let resp = { username: login, init: (initialization as RegistrationRequest).serialize() };
+        
+        const regBody = JSON.stringify(resp);
+
+        AddLog("->", regBody)
 
         response = await fetch('/api/auth-opake/reg_init', {
             method: 'POST',
             headers: {
                 'Content-type': 'application/json'
             },
-            body: JSON.stringify(resp)
+            body: regBody
         });
+
         if (response.status == 200)
             result = await response.json();
         else {
             ShowResult(await response.json(), true);
             return;
         }
+
+        AddLog("<-", result)
 
         const envelope = RegistrationResponse.deserialize(cfg, result['envelope']);
 
@@ -100,16 +132,24 @@ const Webpin: NextPage = () => {
         }
 
         const { record, export_key } = registration;
+
+
+        const finBody = JSON.stringify({ username: login, record: record.serialize() })
+        
+        AddLog("->", finBody)
+
         response = await fetch('/api/auth-opake/reg_finish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: login, record: record.serialize() })
+            body: finBody
         });
+      
         if (response.status == 200) {
             result = await response.json();
             let ev = { preventDefault: () => { } }
             SwitchMode(ev)
             ShowResult(result)
+            AddLog("<-", result)
         }
         else {
             let errorResp = await response.json()
@@ -129,13 +169,16 @@ const Webpin: NextPage = () => {
         // for network traffic
         let response: Response, result;
         let resp = { username: login, ke1: (authInit as KE1).serialize() };
+        let initBody = JSON.stringify(resp)
+
+        AddLog("->" , initBody)
 
         response = await fetch('/api/auth-opake/login_init', {
             method: 'POST',
             headers: {
                 'Content-type': 'application/json'
             },
-            body: JSON.stringify(resp)
+            body: initBody
         });
         if (response.status == 200)
             result = await response.json();
@@ -143,6 +186,7 @@ const Webpin: NextPage = () => {
             ShowResult(await response.json());
             return;
         }
+        AddLog("<-",result)
 
         const ke2 = KE2.deserialize(cfg, result['ke2'])
 
@@ -152,18 +196,22 @@ const Webpin: NextPage = () => {
             return;
         }
 
-
         const { ke3, session_key } = authFinish
+
+        const loginFinish = JSON.stringify({ username: login, ke3: ke3.serialize(), session_key: session_key });
+
+        AddLog("->",loginFinish)
 
         response = await fetch('/api/auth-opake/login_finish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: login, ke3: ke3.serialize(), session_key: session_key })
+            body: loginFinish
         })
 
         if (response.status == 200) {
             result = await response.json()
-            ShowResult(result);
+            AddLog("<-", result);
+            ShowResult(result.message);
         }
         else
             ShowResult(await response.json())
@@ -187,15 +235,16 @@ const Webpin: NextPage = () => {
                 <TextField id="pin" label="Pin" variant="standard" onChange={(e) => setPin(e.target.value)} />
                 <Button onClick={сlick}>Send</Button>
             </Stack>
+    
             <Snackbar
                 open={!!result}
-                autoHideDuration={6000}
+                autoHideDuration={10000}
                 onClose={() => setResult({ result: '', isError: false })}>
                 <Alert severity={!isError ? "success" : "error"} sx={{ width: '100%' }}>
                     {result}
                 </Alert>
             </Snackbar>
-
+            {!!logInfo && <pre >{ logInfo }</pre >}
         </Container>
     )
 

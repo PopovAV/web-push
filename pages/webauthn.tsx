@@ -1,4 +1,4 @@
-import { Alert, Button, FormControlLabel, Snackbar, Stack, Switch, TextField } from '@mui/material';
+import { Alert, Button, FormControlLabel, Snackbar, Stack, Switch, TextField,  Box } from '@mui/material';
 import Container from '../components/Container';
 import { useEffect, useState } from 'react';
 
@@ -7,15 +7,16 @@ import { useSession } from 'next-auth/react';
 import { NextPage } from 'next';
 import { authOptions } from './api/auth/[...nextauth]'
 import { getServerSession } from "next-auth/next"
+import { tob64FromNumbers } from '../libs/store';
 
-export async function getServerSideProps(context:any) {
-  const session = await getServerSession(context.req, context.res, authOptions)
+export async function getServerSideProps(context: any) {
+    const session = await getServerSession(context.req, context.res, authOptions)
 
-  return {
-    props: {
-      session,
-    },
-  }
+    return {
+        props: {
+            session,
+        },
+    }
 }
 
 const WebAuthN: NextPage = () => {
@@ -32,7 +33,16 @@ const WebAuthN: NextPage = () => {
     const [{ isRegistred, text }, setIsRegistred] = useState({ isRegistred: false, text: "Login" })
     const [login, setLogin] = useState(session?.user?.email);
     const [{ result, isError }, setResult] = useState({ result: "", isError: false })
-    const [ keyInfo , setKeyInfo] = useState<any>(null)
+    const [keyInfo, setKeyInfo] = useState<any>(null)
+
+    const replacer = (key: string, value: any) => {
+        if (typeof value == "object" && (value["dataView"] !== undefined || key === 'credentialID')) {
+            return tob64FromNumbers(Object.keys(value).filter(x => x != 'dataView').map(function (key) {
+                return Number(value[key]);
+            }));
+        }
+        return value;
+    }
 
     const SwitchMode = async (event: { preventDefault: () => void }) => {
         event.preventDefault()
@@ -41,13 +51,48 @@ const WebAuthN: NextPage = () => {
     }
 
     const ShowResult = (res: any, error: boolean = false) => {
-        let newResult = typeof res == "string" ? res : JSON.stringify(res, null, 2);
+        let newResult = typeof res == "string" ? res : JSON.stringify(res, replacer, 2);
         setResult({ result: newResult, isError: !!error });
-        console.log(newResult);
+        console.log(res)
     }
 
     async function сlick(event: { preventDefault: () => void; }) {
         await (isRegistred ? sendReg(event) : sendLogin(event))
+    }
+
+    async function сlickRemoveKeys(event: { preventDefault: () => void; }) {
+        let asseResp;
+        try {
+            const resp = await fetch(`/api/authn/keys/${login}`, { method: 'DELETE' });
+
+            if (resp.status == 400) {
+                throw new Error(await resp.text())
+            }
+
+            ShowResult('All keys removed')
+
+        } catch (error: any) {
+            // Some basic error handling
+            ShowResult(error.messsage, true)
+            return;
+        }
+    }
+    async function сlickGetKeys(event: { preventDefault: () => void; }) {
+
+        try {
+            const resp = await fetch(`/api/authn/keys/${login}`);
+
+            if (resp.status === 400) {
+                throw new Error(await resp.json())
+            }
+
+            setKeyInfo(await resp.json())
+
+        } catch (error: any) {
+            // Some basic error handling
+            ShowResult(error.messsage, true)
+            return;
+        }
     }
 
     async function sendReg(event: { preventDefault: () => void; }) {
@@ -102,18 +147,20 @@ const WebAuthN: NextPage = () => {
     async function sendLogin(event: { preventDefault: () => void; }) {
         // GET authentication options from the endpoint that calls
         // @simplewebauthn/server -> generateAuthenticationOptions()
-       
+
         let asseResp;
         try {
             const resp = await fetch(`/api/authn/get_auth_options/${login}`, { cache: 'no-store' });
             // Pass the options to the authenticator and wait for a response
             const authOptions = await resp.json();
+
             setKeyInfo(authOptions)
+            console.log(authOptions)
             asseResp = await startAuthentication(authOptions);
 
         } catch (error: any) {
             // Some basic error handling
-            ShowResult(error, true)
+            ShowResult(error.messsage, true)
             return;
         }
 
@@ -155,8 +202,12 @@ const WebAuthN: NextPage = () => {
             <Stack margin={"10%"}>
                 <TextField id="login" label="UseName" variant="standard" defaultValue={login} onChange={(e) => setLogin(e.target.value)} />
                 <Button onClick={сlick}>Send</Button>
+                <Box sx={{ mt: 10, border: "1px solid" }}>
+                    <Button onClick={сlickGetKeys}>Get All Keys</Button>
+                    <Button onClick={сlickRemoveKeys}>Remove All Keys</Button>
+                </Box>
             </Stack>
-            {!!keyInfo && <pre >{ JSON.stringify(keyInfo,null, 2)}</pre >}
+            {!!keyInfo && <pre >{JSON.stringify(keyInfo, replacer, 2)}</pre >}
             <Snackbar
                 open={!!result}
                 autoHideDuration={30000}

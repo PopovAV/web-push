@@ -165,7 +165,6 @@ export interface AuthFinish {
 
 export interface AuthFinishResp{
     message: string
-    session_key_client: string
     session_key_server: string,
     username: string
 }
@@ -205,7 +204,6 @@ async function auth_finish(request: NextApiRequest, env: EnvS,  response: NextAp
 
     return {
         message: 'login success',
-        session_key_client: toHex(session_key_client),
         session_key_server: toHex(Buffer.from(session_key_server)),
         username: client_identity
     }
