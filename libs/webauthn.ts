@@ -1,5 +1,5 @@
 
-import { CredentialDeviceType, 
+import { AuthenticationResponseJSON, CredentialDeviceType, 
   PublicKeyCredentialCreationOptionsJSON,
    PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/typescript-types';
 import {
@@ -10,7 +10,7 @@ import {
   verifyRegistrationResponse,
 } from '@simplewebauthn/server';
 
-import { KVStorage, fromb64, tob64 } from './store'
+import { KVStorage, fromb64, fromb64url, tob64 } from './store'
 
 const store = new KVStorage();
 
@@ -71,25 +71,24 @@ async function getUserAuthenticators(user: UserModel): Promise<Authenticator[]> 
   return (await store.get("wan-auth-as:" + user.id, null)) as Authenticator[];
 }
 
-function fromb64url(value : string){
 
-  value = value.replaceAll('-', '+').replaceAll('_', '/'); // 62nd char of encoding
-  
-  switch (value.length % 4) // Pad with trailing '='s
-  {
-      case 0: break; // No pad chars in this case
-      case 2: value += "=="; break; // Two pad chars
-      case 3: value += "="; break; // One pad char
-  }
-  return value;
-
-}
 
 async function getUserAuthenticator(user: UserModel, authentificatorId: string): Promise<Authenticator | undefined> {
   let auths: Authenticator[] = await store.get("wan-auth-as:" + user.id, null);
   let b64 =  fromb64url(authentificatorId)
   return auths.find((a) => a.credentialID == b64)
 }
+
+async function updateAuthenticator(user: UserModel,authentificatorId: string): Promise<void> {
+  let auths: Authenticator[] = await store.get("wan-auth-as:" + user.id, null);
+  let b64 =  fromb64url(authentificatorId)
+  const authUsed =  auths.find((a) => a.credentialID == b64);
+  if(authUsed!=null){
+      authUsed.counter +=1;
+      await store.put("wan-auth-as:" + user.id, auths, null);
+  }
+}
+
 
 async function saveNewUserAuthenticatorInDB(user: UserModel, newAuthenticator: Authenticator) {
   const auths = await getUserAuthenticators(user)?? []
@@ -100,6 +99,20 @@ async function saveNewUserAuthenticatorInDB(user: UserModel, newAuthenticator: A
 async function getUserId(username: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(username))
   return Buffer.from(digest).toString('hex')
+}
+
+export async function delete_keys(username: string) : Promise<void>{
+  const userId = await getUserId(username)
+  let user = await getUserFromDB(userId);
+  if (user == null) throw new Error("user not found");
+  await store.put("wan-auth-as:" + userId, [], null);
+}
+
+export async function get_keys(username: string) : Promise<Authenticator[]>{
+  const userId = await getUserId(username)
+  let user = await getUserFromDB(userId);
+  if (user == null) throw new Error("user not found");
+  return  await getUserAuthenticators(user)??[]
 }
 
 
@@ -231,15 +244,19 @@ export async function verify_auth(username :string, body : any): Promise<Verifie
   }
 
   let verification;
+  let resp =  body as AuthenticationResponseJSON
 
   verification = await verifyAuthenticationResponse({
-    response: body,
+    response: resp,
     expectedChallenge,
     expectedOrigin: origin,
     expectedRPID: rpID,
     authenticator: devAuth,
   });
+  if(verification.verified){
+    await updateAuthenticator(user,authenticator.credentialID)
 
+  }
 
   return verification
 
