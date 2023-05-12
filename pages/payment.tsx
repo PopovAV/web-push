@@ -93,8 +93,8 @@ const Payment: NextPage = () => {
   const bufferToBase64URLString = (buffer: ArrayBuffer) => {
     const bytes = new Uint8Array(buffer);
     let str = '';
-    for (const charCode of bytes) {
-      str += String.fromCharCode(charCode);
+    for (const charCode in bytes) {
+      str += String.fromCharCode(Number(charCode));
     }
     const base64String = btoa(str);
     return base64String.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
