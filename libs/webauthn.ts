@@ -253,11 +253,7 @@ export async function verify_auth(username :string, body : any): Promise<Verifie
     expectedRPID: rpID,
     authenticator: devAuth,
   });
-  if(verification.verified){
-    await updateAuthenticator(user,authenticator.credentialID)
-
-  }
-
+  
   return verification
 
 }

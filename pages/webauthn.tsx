@@ -145,9 +145,6 @@ const WebAuthN: NextPage = () => {
     }
 
     async function sendLogin(event: { preventDefault: () => void; }) {
-        // GET authentication options from the endpoint that calls
-        // @simplewebauthn/server -> generateAuthenticationOptions()
-
         let asseResp;
         try {
             const resp = await fetch(`/api/authn/get_auth_options/${login}`, { cache: 'no-store' });

@@ -2,143 +2,261 @@ import type { NextPage } from "next";
 import Container from "../components/Container";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react"
-import { Button } from "@mui/material";
-import { fromHex, fromb64, fromb64url } from "../libs/store";
+import { Box, Button } from "@mui/material";
+import { startRegistration } from "@simplewebauthn/browser";
+import { useRouter } from "next/router";
 
 const Payment: NextPage = () => {
 
+
+  const router = useRouter();
+
   const { data: session } = useSession();
+  const [{ isSupported, reason }, setIsSupported] = useState({ isSupported: false, reason: '' });
+  const [authOption, setAuthOption] = useState<any>()
 
-  // A unique identifier for your website
-  const rpID = `${process.env.HOST_NAME}`;
-
-  const [ { isSupported, reason} , setIsSupported] = useState({ isSupported: false, reason: ''});
+  let location: Location;
 
   useEffect(() => {
+
+    location = window.location;
+
     isSecurePaymentConfirmationSupported().then(result => {
       const [isSupported, reason] = result;
       setIsSupported({ isSupported, reason })
+      getAuthOptions().then((opt) => {
+        setAuthOption(opt)
+      })
     });
-  },[session])
+  }, [session, router.pathname])
+
+
+  const replacer = (key: string, value: any) => {
+    if (typeof value == "object" && (value["dataView"] !== undefined || key === 'credentialID')) {
+      return bufferToBase64URLString(
+        Buffer.from(Object.keys(value).filter(x => x != 'dataView').map((key) => { return Number(value[key]) })
+        ));
+    }
+    return value;
+  }
 
   const isSecurePaymentConfirmationSupported = async () => {
     if (!('PaymentRequest' in window)) {
       return [false, 'Payment Request API is not supported'];
     }
-  
+
     try {
-      // The data below is the minimum required to create the request and
-      // check if a payment can be made.
+
       const supportedInstruments = [
         {
           supportedMethods: "secure-payment-confirmation",
           data: {
-            // RP's hostname as its ID
-            rpId: rpID,
-            // A dummy credential ID
+            rpId: location.host.split(':')[0],
             credentialIds: [new Uint8Array(1)],
-            // A dummy challenge
             challenge: new Uint8Array(1),
             instrument: {
-              // Non-empty display name string
               displayName: ' ',
-              // Transparent-black pixel.
               icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==',
             },
-            // A dummy merchant origin
             payeeOrigin: 'https://non-existent.example',
           }
         }
       ];
-  
       const details = {
-        // Dummy shopping details
-        total: {label: 'Total', amount: {currency: 'USD', value: '0'}},
+        total: { label: 'Total', amount: { currency: 'USD', value: '0' } },
       };
-  
       const request = new PaymentRequest(supportedInstruments, details);
       const canMakePayment = await request.canMakePayment();
       return [canMakePayment, canMakePayment ? '' : 'SPC is not available'];
     } catch (error: any) {
-      console.error(error);
       return [false, error.message];
     }
   };
 
-  const PayClick = async (event: { preventDefault: () => void; })=>{
+  const base64URLStringToBuffer = (base64URLString: string) => {
+    const base64 = base64URLString.replace(/-/g, '+').replace(/_/g, '/');
+    const padLength = (4 - (base64.length % 4)) % 4;
+    const padded = base64.padEnd(base64.length + padLength, '=');
+    const binary = atob(padded);
+    const buffer = new ArrayBuffer(binary.length);
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return buffer;
+  }
+
+  const bufferToUTF8String = (value: ArrayBuffer) => {
+    return new TextDecoder('utf-8').decode(value);
+  }
+
+  const bufferToBase64URLString = (buffer: ArrayBuffer) => {
+    const bytes = new Uint8Array(buffer);
+    let str = '';
+    for (const charCode of bytes) {
+      str += String.fromCharCode(charCode);
+    }
+    const base64String = btoa(str);
+    return base64String.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+
+  const toJson = (credential: any) => {
+    const { id, rawId, response, type } = credential;
+    let userHandle = undefined;
+    if (response.userHandle) {
+      userHandle = bufferToUTF8String(response.userHandle);
+    }
+
+    return {
+      id,
+      rawId: bufferToBase64URLString(rawId),
+      response: {
+        authenticatorData: bufferToBase64URLString(response.authenticatorData),
+        clientDataJSON: bufferToBase64URLString(response.clientDataJSON),
+        signature: bufferToBase64URLString(response.signature),
+        userHandle,
+      },
+      type,
+      clientExtensionResults: credential.getClientExtensionResults(),
+      // authenticatorAttachment: toAuthenticatorAttachment(credential.authenticatorAttachment),
+    };
+  }
+
+  const getAuthOptions = async () => {
     const resp = await fetch(`/api/authn/get_auth_options/${session?.user?.email}`, { cache: 'no-store' });
-    // Pass the options to the authenticator and wait for a response
     const options = await resp.json();
     console.log(options);
+    return options;
+  }
 
-    const { allowCredentials, challenge } = options;
-    
-    const request = new PaymentRequest([{
-      // Specify `secure-payment-confirmation` as payment method.
+  const RegPaymentToken = async () => {
+
+    const resp = await fetch('/api/authn/get_reg_options/' + session?.user?.email, { cache: 'no-store' });
+
+    const creationOptionsJSON = await resp.json()
+
+    const paymentExtension = {
+      ...creationOptionsJSON,
+      authenticatorSelection: {
+        userVerification: "required",
+        residentKey: "required",
+        authenticatorAttachment: "platform",
+      },
+      extensions: { "payment": { isPayment: true, } }
+    }
+    let attResp;
+    try {
+      // Pass the options to the authenticator and wait for a response
+      attResp = await startRegistration(paymentExtension);
+
+    } catch (error: any) {
+      // Some basic error handling
+      if (error.name === 'InvalidStateError') {
+        setKeyInfo('Error: Authenticator was probably already registered by user');
+      } else {
+        setKeyInfo(error.message)
+      }
+      return;
+
+    }
+
+    const verificationResp = await fetch(`/api/authn/verify-registration/${session?.user?.email}/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(attResp),
+    });
+
+    // Wait for the results of verification
+    const verificationJSON = await verificationResp.json();
+    setKeyInfo(verificationJSON)
+
+  }
+
+  const PayClick = async (event: { preventDefault: () => void; }) => {
+
+    const { allowCredentials, challenge } = authOption;
+
+    const paymentMethod = {
       supportedMethods: "secure-payment-confirmation",
       data: {
-        // The RP ID
-        rpId: rpID,
-    
-        // List of credential IDs obtained from the RP server.
-        credentialIds : allowCredentials.map((cr:any)=> fromb64(cr.id)),
-    
-        // The challenge is also obtained from the RP server.
-        challenge : fromb64(challenge),
-    
-        // A display name and an icon that represent the payment instrument.
+        type: "webauthn.get",
+        rpId: window.location.host.split(':')[0],
+        credentialIds: allowCredentials.map((cr: any) => base64URLStringToBuffer(cr.id)),
+        challenge: base64URLStringToBuffer(challenge),
         instrument: {
           displayName: "Fancy Card ****1234",
-          icon: "https://rp.example/card-art.png",
+          icon: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+P+/HgAFhAJ/wlseKgAAAABJRU5ErkJggg==',
           iconMustBeShown: false
         },
-    
-        // The origin of the payee (merchant)
-        payeeOrigin: "https://merchant.example",
-    
-        // The number of milliseconds to timeout.
-        timeout: 360000,  // 6 minutes
+        payeeName: session?.user?.email,
+        payeeOrigin: "https://test.merchant.com",
+        timeout: 360000
       }
-    }], {
-      // Payment details.
+    }
+    const details = {
       total: {
         label: "Total",
         amount: {
           currency: "USD",
           value: "5.00",
         },
-      },
-    });
-    
+      }
+    }
+
+    const request = new PaymentRequest([paymentMethod], details);
+
+    let paymentResponse;
+    let clientDataJson;
     try {
-      const response = await request.show();
-    
-      // response.details is a PublicKeyCredential, with a clientDataJSON that
-      // contains the transaction data for verification by the issuing bank.
-      // Make sure to serialize the binary part of the credential before
-      // transferring to the server.
-      //const result = fetchFromServer('https://rp.example/spc-auth-response', response.details);
-      //if (result.success) {
-     //   await response.complete('success');
-     // } else {
-        await response.complete('fail');
-     // }
-    } catch (err) {
+      paymentResponse = await request.show();
+      console.log(paymentResponse.toJSON())
+      clientDataJson = bufferToUTF8String(paymentResponse.details.response.clientDataJSON);
+      const verificationResp = await fetch(`/api/authn/verify-login/${session?.user?.email}/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(toJson(paymentResponse.details)),
+      });
+      if (verificationResp.status == 400) {
+        let error = await verificationResp.json();
+        throw new Error(error.error)
+      }
+
+      // Wait for the results of verification
+      const verificationJSON = await verificationResp.json();
+
+    } catch (err: any) {
       // SPC cannot be used; merchant should fallback to traditional flows
-      console.error(err);
+      paymentResponse?.complete("fail")
+      console.log(clientDataJson);
+      setKeyInfo(JSON.parse(clientDataJson ?? `{ error : ${err.message}}`));
     }
 
   }
+
+  const [keyInfo, setKeyInfo] = useState<any>(null)
 
 
   return (
 
     <Container title="Payment">
       {
-        isSupported ? <Button onClick={PayClick} > Pay </Button> : <div> { reason } </div>
+        isSupported ?
+          <Box>
+            <Button onClick={PayClick} > Pay </Button>
+            <Button onClick={RegPaymentToken} > Reg Key </Button>
+          </Box>
+          : <div> {reason} </div>
       }
+
+      {!!keyInfo && <pre >{JSON.stringify(keyInfo, replacer, 2)}</pre >}
     </Container>
   );
 };
+
+Payment.displayName = "payment"
 
 export default Payment;

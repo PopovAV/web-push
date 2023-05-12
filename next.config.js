@@ -4,7 +4,7 @@ const securityHeaders = [
 
   {
     key: 'Permissions-Policy',
-    value: 'camera=(), microphone=(), geolocation=(), browsing-topics=(), publickey-credentials-get=*'
+    value: 'payment=* ,camera=(), microphone=(), geolocation=(), browsing-topics=(), publickey-credentials-get=*'
   }
 
 ]

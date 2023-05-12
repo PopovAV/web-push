@@ -19,7 +19,7 @@ const MENU_OPTIONS: MenuOption[] = [
   {
     name: "WebAuthExt",
     icon: AccountBox,
-    url: "/webauth",
+    url: "/webauthext",
   },
   {
     name: "WebAuthN",

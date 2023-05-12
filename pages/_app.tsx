@@ -12,9 +12,12 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }: AppProps<{ s
 
     <ThemeProvider theme={theme}>
       <SessionProvider session={session}>
-        <DashboardLayout>
-          <Component {...pageProps} />
-        </DashboardLayout>
+        {Component.displayName!= undefined
+          ? <Component {...pageProps} />
+          : <DashboardLayout>
+            <Component {...pageProps} />
+          </DashboardLayout>
+        }
       </SessionProvider>
     </ThemeProvider>
 
