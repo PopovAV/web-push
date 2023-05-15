@@ -1,5 +1,35 @@
 'use strict'
 
+self.addEventListener("canmakepayment", (e) => {
+  e.respondWith(
+    new Promise((resolve, reject) => {
+      someAppSpecificLogic()
+        .then((result) => {
+          resolve(result);
+        })
+        .catch((error) => {
+          reject(error);
+        });
+    })
+  );
+});
+
+let payment_request_event;
+let resolver;
+let client;
+
+// `self` is the global object in service worker
+self.addEventListener("paymentrequest", async (e) => {
+  if (payment_request_event) {
+    // If there's an ongoing payment transaction, reject it.
+    resolver.reject();
+  }
+  // Preserve the event for future use
+  payment_request_event = e;
+
+});
+
+
 self.addEventListener('push', function (event) {
   const data = JSON.parse(event.data.text())
   event.waitUntil(

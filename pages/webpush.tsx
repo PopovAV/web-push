@@ -3,6 +3,13 @@ import Container from '../components/Container'
 import Button from '@mui/material/Button';
 import { Alert, Snackbar, Stack } from '@mui/material';
 
+import { useSession } from 'next-auth/react';
+import { NextPage } from 'next';
+
+import { authOptions } from './api/auth/[...nextauth]'
+import { getServerSession } from "next-auth/next"
+
+
 const base64ToUint8Array = (base64: string | any[]) => {
   const padding = '='.repeat((4 - (base64.length % 4)) % 4)
   const b64 = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/')
@@ -17,14 +24,31 @@ const base64ToUint8Array = (base64: string | any[]) => {
 }
 
 
-
+export async function getServerSideProps(context: any) {
+  const session = await getServerSession(context.req, context.res, authOptions)
+  return {
+    props: {
+      session,
+    },
+  }
+}
 
 const Index = () => {
-  const [isSubscribed, setIsSubscribed] = useState(false)
-  const [subscription, setSubscription] = useState<PushSubscription | undefined>(undefined)
-  const [registration, setRegistration] = useState<ServiceWorkerRegistration | undefined>(undefined)
+
+  const { update, data: session, status } = useSession();
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscription, setSubscription] = useState<PushSubscription | undefined>(undefined);
+  const [registration, setRegistration] = useState<ServiceWorkerRegistration | undefined>(undefined);
+  const [login, setLogin] = useState(session?.user?.email ?? "");
+
+
 
   useEffect(() => {
+
+    if (status === "authenticated") {
+      setLogin(session.user?.email ?? "")
+    }
+
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
       // run only in browser
       navigator.serviceWorker.ready.then(reg => {
@@ -42,7 +66,9 @@ const Index = () => {
 
       })
     }
-  }, [])
+
+
+  }, [update])
 
   const subscribeButtonOnClick = async (event: { preventDefault: () => void }) => {
     event.preventDefault()
@@ -73,9 +99,23 @@ const Index = () => {
   const unsubscribeButtonOnClick = async (event: { preventDefault: () => void }) => {
     event.preventDefault()
     await subscription?.unsubscribe()
-    // TODO: you should call your API to delete or invalidate subscription data on server
+
+    if (!!login) {
+
+      const res = await fetch('/api/notification/' + login, {
+        method: 'DELETE',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          subscription
+        })
+      })
+    }
+
     setSubscription(undefined)
     setIsSubscribed(false)
+
     ShowResult('web push unsubscribed!')
   }
 
@@ -86,7 +126,7 @@ const Index = () => {
       return
     }
 
-    const response = await fetch('/api/notification', {
+    const response = await fetch('/api/notification/' + (login ? `${login}` : ''), {
       method: 'POST',
       headers: {
         'Content-type': 'application/json'
@@ -98,7 +138,7 @@ const Index = () => {
     if (response.status == 200)
       ShowResult("push sended")
     else {
-      ShowResult(await response.text(),true);
+      ShowResult(await response.text(), true);
     }
 
 
@@ -130,19 +170,19 @@ const Index = () => {
         <Button onClick={sendNotificationButtonOnClick} disabled={!isSubscribed}>
           Send Notification
         </Button>
-        <pre >{ JSON.stringify(subscription,null, 2)}</pre >
-     
+        <pre >{JSON.stringify(subscription, null, 2)}</pre >
+
       </Stack>
       <Snackbar
-          open={!!result}
-          autoHideDuration={6000}
-          onClose={() => setResult({ result: '', isError: false })}>
-          <Alert severity={!isError ? "success" : "error"} sx={{ width: '100%' }}>
-            { result } 
-          </Alert>
-        </Snackbar>
+        open={!!result}
+        autoHideDuration={6000}
+        onClose={() => setResult({ result: '', isError: false })}>
+        <Alert severity={!isError ? "success" : "error"} sx={{ width: '100%' }}>
+          {result}
+        </Alert>
+      </Snackbar>
     </Container>
-    
+
   )
 }
 

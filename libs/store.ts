@@ -20,7 +20,7 @@ export class KVStorage {
 
     }
 
-    async put(k: string, v: any, ttl: any | null): Promise<boolean> {
+    async put(k: string, v: any, ttl: any | null = null): Promise<boolean> {
         let res = await this.redis.set(k, v, ttl)
         return res == "OK"
     }
