@@ -46,7 +46,6 @@ async function PushAll(subscription: Subscription, username: string) {
   return results[0];
 }
 
-
 async function SendPush(subscription: Subscription) {
   return webPush
     .sendNotification(
