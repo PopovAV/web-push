@@ -18,7 +18,43 @@ const Home: NextPage = () => {
       if('userAgentData' in navigator){
         luad = JSON.stringify(navigator.userAgentData,(k, v)=> v,2);
       }
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        console.log("enumerateDevices() not supported.");
+      } else {
+        luad+="Divices:";
+        navigator.mediaDevices
+          .enumerateDevices()
+          .then((devices) => {
+            devices.forEach((device) => {
+              diviceIfno += `\r\n${device.kind}: ${device.label} id = ${device.deviceId}`;
+            });
+          })
+          .catch((err) => {
+            console.log(`${err.name}: ${err.message}`);
+          });
+      }
+
       setUserAgent({ ua:navigator.userAgent, uad : luad })
+
+      let diviceIfno = "";
+      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+        console.log("enumerateDevices() not supported.");
+      } else {
+        // List cameras and microphones.
+        navigator.mediaDevices
+          .enumerateDevices()
+          .then((devices) => {
+            devices.forEach((device) => {
+              diviceIfno += `${device.kind}: ${device.label} id = ${device.deviceId} \r\n`;
+            });
+          })
+          .catch((err) => {
+            console.log(`${err.name}: ${err.message}`);
+          });
+      }
+      
+
 
 
       import('clientjs').then((m) => {
