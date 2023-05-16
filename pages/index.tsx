@@ -22,39 +22,23 @@ const Home: NextPage = () => {
       if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
         console.log("enumerateDevices() not supported.");
       } else {
-        luad+="Divices:";
+        let deviceInfo = '';
         navigator.mediaDevices
           .enumerateDevices()
           .then((devices) => {
             devices.forEach((device) => {
-              diviceIfno += `\r\n${device.kind}: ${device.label} id = ${device.deviceId}`;
+              deviceInfo += `\r\n${device.kind}: ${device.label} id = ${device.deviceId}`;
             });
           })
           .catch((err) => {
             console.log(`${err.name}: ${err.message}`);
           });
+          if(deviceInfo.length>0){
+            luad += "\r\nDevices" + deviceInfo;
+          }
       }
 
       setUserAgent({ ua:navigator.userAgent, uad : luad })
-
-      let diviceIfno = "";
-      if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
-        console.log("enumerateDevices() not supported.");
-      } else {
-        // List cameras and microphones.
-        navigator.mediaDevices
-          .enumerateDevices()
-          .then((devices) => {
-            devices.forEach((device) => {
-              diviceIfno += `${device.kind}: ${device.label} id = ${device.deviceId} \r\n`;
-            });
-          })
-          .catch((err) => {
-            console.log(`${err.name}: ${err.message}`);
-          });
-      }
-      
-
 
 
       import('clientjs').then((m) => {
