@@ -31,6 +31,11 @@ const MENU_OPTIONS: MenuOption[] = [
     icon: AccountBox,
     url: "/webpin",
   },
+  {
+    name: "WebCrypto",
+    icon: AccountBox,
+    url: "/webcrypto",
+  },
 ];
 
 export type MenuItem = {

@@ -35,6 +35,10 @@ export function fromHexString(x: string): string {
     return Buffer.from(x, 'hex').toString()
 }
 
+export function toHexString(x: ArrayBuffer): string {
+    return Buffer.from(x).toString('hex');
+}
+
 export function fromHex(x: string): Uint8Array {
     return Uint8Array.from(Buffer.from(x, 'hex'))
 }
