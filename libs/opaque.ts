@@ -128,6 +128,7 @@ async function auth_init(request: any, env: EnvS, response: NextApiResponse): Pr
         throw new Error('stored credentials file does not seem to match client')
     }
     const server_identity = env.server_identity
+    
     const server = new OpaqueServer(
         cfg,
         env.oprf_seed,
@@ -150,7 +151,19 @@ async function auth_init(request: any, env: EnvS, response: NextApiResponse): Pr
 
     const session = expected.serialize();
 
-    await env.KV.put(client_identity + "-ss", session, null)
+    const prevSession = await env.KV.get(client_identity + "-ss", null)
+    let error  = 0
+    if(prevSession!=null){
+        error = prevSession.error + 1
+        
+        if(error>1){
+           await  env.KV.del(client_identity + "-ss");
+           await  env.KV.del(client_identity);
+           throw new Error("Credential removed by error count 2")
+        }
+    }
+
+    await env.KV.put(client_identity + "-ss", { session , error}, null)
 
     return { message: 'intermediate authentication key enclosed', ke2: ke2.serialize() }
 }
@@ -173,7 +186,6 @@ async function auth_finish(request: NextApiRequest, env: EnvS,  response: NextAp
     const requestJSON = request.body
     const ke3Serialized = requestJSON['ke3']
     const client_identity = requestJSON['username'].trim()
-    const session_key_client = requestJSON['session_key']
     // username is also being used for this demo as server-side credential_identifier
     const credential_identifier = client_identity
 
@@ -193,13 +205,15 @@ async function auth_finish(request: NextApiRequest, env: EnvS,  response: NextAp
     if (!expectedJSON) {
         throw new Error('auth_init expected values not found for this client')
     }
-    const expected = ExpectedAuthResult.deserialize(cfg, expectedJSON)
-    await env.KV.del(client_identity + "-ss")
+    const expected = ExpectedAuthResult.deserialize(cfg, expectedJSON.session)
 
     const authFinish = server.authFinish(ke3, expected)
     if (authFinish instanceof Error) {
         throw authFinish
     }
+
+    await env.KV.del(client_identity + "-ss")
+
     const { session_key: session_key_server } = authFinish
 
     return {

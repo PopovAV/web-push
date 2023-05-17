@@ -4,8 +4,6 @@ import Container from "../components/Container";
 import { Box, Button, MenuItem, Select, Stack, TextField } from "@mui/material";
 import { ecdh_generate_keypair, ecdh_export, ecdh_import, ecdh_derive_key, aes_encrypt, aes_decrypt } from "../libs/cryptoext";
 import { toHexFromNumbers } from "../libs/store";
-import { WidthNormal } from "@mui/icons-material";
-
 
 
 const Home: NextPage = () => {

@@ -1,4 +1,5 @@
 import { CryptoKey } from '@simplewebauthn/typescript-types';
+import { fromHex, toHexString } from './store';
 
 
 
@@ -112,4 +113,53 @@ function json_decompress(str: string) {
     str = str.replace(/☺/g, "{");
     str = str.replace(/☻/g, "}");
     return JSON.parse(str);
+}
+
+export async function ImportKey(masterkey: Array<number>) {
+    return await window.crypto.subtle.importKey(
+        "raw", //can be "jwk" or "raw"
+        Buffer.from(masterkey),
+        {   //this is the algorithm options
+            name: "AES-GCM",
+        },
+        true, //whether the key is extractable (i.e. can be used in exportKey)
+        ["encrypt", "decrypt"] //can "encrypt", "decrypt", "wrapKey", or "unwrapKey"
+    )
+}
+
+export async function aesEncrypt(plaintext: string, importedKey: CryptoKey) {
+  
+    const encoder = new TextEncoder();
+    const messageUTF8 = encoder.encode(plaintext);
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const algorithm = {
+        iv,
+        name: 'AES-GCM',
+    };
+
+    const messageEncryptedUTF8 = await window.crypto.subtle.encrypt(
+        algorithm,
+        importedKey,
+        messageUTF8
+    );
+
+    return { iv: toHexString(iv), chipterText: toHexString(messageEncryptedUTF8) }
+}
+
+export async function aesDecrypt(chipterText: string, iv: string, importedKey: CryptoKey) {
+   
+    const algorithm = {
+        iv: fromHex(iv),
+        name: 'AES-GCM'
+    };
+
+    const decoder = new TextDecoder();
+
+    const messageDecryptedUTF8 = await window.crypto.subtle.decrypt(
+        algorithm,
+        importedKey,
+        fromHex(chipterText),
+    );
+
+    return decoder.decode(messageDecryptedUTF8)
 }

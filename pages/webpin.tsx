@@ -17,6 +17,7 @@ import { NextPage } from 'next';
 
 import { authOptions } from './api/auth/[...nextauth]'
 import { getServerSession } from "next-auth/next"
+import { ImportKey, aesDecrypt, aesEncrypt } from '../libs/cryptoext';
 import { toHexFromNumbers } from '../libs/store';
 
 export async function getServerSideProps(context: any) {
@@ -47,9 +48,9 @@ const Webpin: NextPage = () => {
     const [pin, setPin] = useState("");
     const [login, setLogin] = useState(session?.user?.email ?? "");
     const [{ result, isError }, setResult] = useState({ result: "", isError: false });
-    const [ logInfo , setLogInfo] = useState<any>(null);
+    const [logInfo, setLogInfo] = useState<any>(null);
 
-    let logBugger = logInfo??""
+    let logBugger = logInfo ?? ""
 
 
     const SwitchMode = async (event: { preventDefault: () => void }) => {
@@ -62,32 +63,33 @@ const Webpin: NextPage = () => {
     const ShowResult = (res: any, error: boolean = false) => {
         let newResult = typeof res == "string" ? res : JSON.stringify(res, null, 2);
         setResult({ result: newResult, isError: !!error });
-        console.log(newResult);
     }
 
-    const AddLog = (dir:string , message:any, final: boolean = false)=>{
+    const AddLog = (dir: string, message: any, final: boolean = false) => {
         logBugger = logBugger + "\r\n" + dir;
         let obj;
 
-        if(typeof message == "string" && message[0]== '{'){
+        if (typeof message == "string" && message[0] == '{') {
             obj = JSON.parse(message)
         }
-        else{
+        else {
             obj = message;
         }
 
-        logBugger += JSON.stringify(obj, (key, value)=>Array.isArray(value)? toHexFromNumbers(value.map(Number)) : value ,2)
-       
+        logBugger += JSON.stringify(obj, (key, value) => Array.isArray(value) ? toHexFromNumbers(value.map(Number)) : value, 2)
+
     }
 
     async function сlick(event: { preventDefault: () => void; }) {
-        
+
         logBugger = "";
 
         await (isRegistred ? sendReg(event) : sendLogin(event))
-       
+
         setLogInfo(logBugger)
     }
+
+
 
     async function sendReg(event: { preventDefault: () => void; }) {
 
@@ -97,10 +99,10 @@ const Webpin: NextPage = () => {
 
         const initialization = await client.registerInit(pin);
 
-        // for network traffic
         let response: Response, result;
+
         let resp = { username: login, init: (initialization as RegistrationRequest).serialize() };
-        
+
         const regBody = JSON.stringify(resp);
 
         AddLog("->", regBody)
@@ -133,9 +135,16 @@ const Webpin: NextPage = () => {
 
         const { record, export_key } = registration;
 
+        AddLog("ClientSecretDK", { key: export_key });
+
+        const key = await ImportKey(export_key)
+        const data = await aesEncrypt(JSON.stringify(session), key)
+        window.sessionStorage.setItem("encSessionData", JSON.stringify(data))
+
+        AddLog("save to sessionStore", data)
 
         const finBody = JSON.stringify({ username: login, record: record.serialize() })
-        
+
         AddLog("->", finBody)
 
         response = await fetch('/api/auth-opake/reg_finish', {
@@ -143,7 +152,7 @@ const Webpin: NextPage = () => {
             headers: { 'Content-Type': 'application/json' },
             body: finBody
         });
-      
+
         if (response.status == 200) {
             result = await response.json();
             let ev = { preventDefault: () => { } }
@@ -171,7 +180,7 @@ const Webpin: NextPage = () => {
         let resp = { username: login, ke1: (authInit as KE1).serialize() };
         let initBody = JSON.stringify(resp)
 
-        AddLog("->" , initBody)
+        AddLog("->", initBody)
 
         response = await fetch('/api/auth-opake/login_init', {
             method: 'POST',
@@ -183,10 +192,10 @@ const Webpin: NextPage = () => {
         if (response.status == 200)
             result = await response.json();
         else {
-            ShowResult(await response.json());
+            ShowResult(await response.json(), true);
             return;
         }
-        AddLog("<-",result)
+        AddLog("<-", result)
 
         const ke2 = KE2.deserialize(cfg, result['ke2'])
 
@@ -196,11 +205,24 @@ const Webpin: NextPage = () => {
             return;
         }
 
-        const { ke3, session_key } = authFinish
+        const { ke3, session_key, export_key } = authFinish
+
+        AddLog("ClientSecretDK", { key: export_key });
+
+        const encData = window.sessionStorage.getItem("encSessionData")
+        if (encData) {
+            window.sessionStorage.removeItem("encSessionData")
+            let { chipterText, iv } = JSON.parse(encData)
+            if (chipterText != undefined) {
+                let key = await ImportKey(export_key)
+                let data = await aesDecrypt(chipterText, iv, key)
+                AddLog("get from sessionStore", data)
+            }
+        }
 
         const loginFinish = JSON.stringify({ username: login, ke3: ke3.serialize(), session_key: session_key });
 
-        AddLog("->",loginFinish)
+        AddLog("->", loginFinish)
 
         response = await fetch('/api/auth-opake/login_finish', {
             method: 'POST',
@@ -214,8 +236,21 @@ const Webpin: NextPage = () => {
             ShowResult(result.message);
         }
         else
-            ShowResult(await response.json())
+            ShowResult(await response.json(), true)
 
+    }
+
+    async function rotateKeys(event: any) {
+        const response = await fetch('/api/auth-opake/change_keys' ,{ method: "OPTIONS"} );
+        if (response.status == 200) {
+            const result = await response.json();
+            AddLog("<-", result,true)
+            setLogInfo(logBugger)
+            ShowResult("Ok");
+        }
+        else {
+            ShowResult(await response.json(), true);
+        }
     }
 
     return (
@@ -231,11 +266,12 @@ const Webpin: NextPage = () => {
                 label={text}
             />
             <Stack margin={"10%"}>
-                <TextField id="login" label="UseName" variant="standard" defaultValue={login} onChange={(e) => setLogin(e.target.value)} />
-                <TextField id="pin" label="Pin" variant="standard" onChange={(e) => setPin(e.target.value)} />
+                <TextField id="login" label="UseName" variant="standard" defaultValue={login} onChange={(e) => setLogin(e.target.value)} autoComplete='username' />
+                <TextField id="pin" label="Pin" variant="standard" onChange={(e) => setPin(e.target.value)} autoComplete={isRegistred ? "current-password" : 'new-password'} />
                 <Button onClick={сlick}>Send</Button>
+                <Button onClick={rotateKeys}>RotateKeys</Button>
             </Stack>
-    
+   
             <Snackbar
                 open={!!result}
                 autoHideDuration={10000}
@@ -244,7 +280,7 @@ const Webpin: NextPage = () => {
                     {result}
                 </Alert>
             </Snackbar>
-            {!!logInfo && <pre >{ logInfo }</pre >}
+            {!!logInfo && <pre >{logInfo}</pre >}
         </Container>
     )
 

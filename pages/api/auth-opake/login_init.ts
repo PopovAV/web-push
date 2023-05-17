@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { AuthInitResp, auth_init } from '../../../libs/opaque'
-import  serverEnv  from './serverEnv'
+import  getEnv  from './serverEnv'
 
 type InitData = {
   username: string
@@ -20,7 +20,8 @@ export default async function handler(
     console.error('crypto support is disabled!');
   }
   try {
-    let resp = await auth_init(req, serverEnv, res);
+    const env = await getEnv();
+    let resp = await auth_init(req, env, res);
     res.status(200).json(resp)
   }
   catch(e: any) {
@@ -28,3 +29,4 @@ export default async function handler(
     res.status(400).json(e.message)
   }
 }
+

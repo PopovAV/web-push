@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { InitResp, register_init } from '../../../libs/opaque'
-import  serverEnv  from './serverEnv'
+import  getEnv  from './serverEnv'
 
 type InitData = {
   username: string
@@ -21,7 +21,8 @@ export default async function handler(
   }
 
   try {
-    let resp = await register_init(req, serverEnv);
+    const env = await getEnv()
+    let resp = await register_init(req, env);
     res.status(200).json(resp)
   }
   catch(e : any) {
