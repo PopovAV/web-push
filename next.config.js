@@ -11,9 +11,10 @@ const securityHeaders = [
 
 const withPWA = require('next-pwa')({
   dest: 'public',
-  cacheOnFrontEndNav:false,
-  disable: process.env.NODE_ENV === 'development',
+  cacheOnFrontEndNav: false,
+  //disable: process.env.NODE_ENV === 'development',
   register: true,
+ 
 })
 
 
@@ -23,7 +24,7 @@ const config = {
       // Apply these headers to all routes in your application.
       source: '/:path*',
       headers: securityHeaders,
-    }, ]
+    },]
   }
 }
 

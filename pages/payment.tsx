@@ -123,10 +123,13 @@ const Payment: NextPage = () => {
   }
 
   const getAuthOptions = async () => {
-    const resp = await fetch(`/api/authn/get_auth_options/${session?.user?.email}`, { cache: 'no-store' });
-    const options = await resp.json();
-    console.log(options);
-    return options;
+    if (session?.user?.email) {
+      const resp = await fetch(`/api/authn/get_auth_options/${session?.user?.email}`, { cache: 'no-store' });
+      const options = await resp.json();
+      console.log(options);
+      return options;
+    }
+    return null;
   }
 
   const RegPaymentToken = async () => {

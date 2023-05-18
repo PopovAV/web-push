@@ -62,6 +62,7 @@ const Home: NextPage = () => {
     <Container title="Dashboard">
       <p>{ua}</p>
       <p>FingerPrint : {fingerprint}</p>
+      <a href="web+payment:/payment">Test Hander</a>
       {!!session &&
         <div>
           <p>{session.user?.name}</p>

@@ -29,30 +29,39 @@ self.addEventListener("paymentrequest", async (e) => {
 
 });
 
+let countPush = 0
 
 self.addEventListener('push', function (event) {
   const data = JSON.parse(event.data.text())
+  if (navigator.setAppBadge) {
+    countPush++
+    navigator.setAppBadge(countPush)
+  }
   event.waitUntil(
     registration.showNotification(data.title, {
       body: data.message,
       icon: '/icons/android-chrome-192x192.png',
       actions: [
         {
-            action: "view-content",
-            title: "Yes"
+          action: "view-content",
+          title: "Yes"
         },
         {
-            action: "go-home",
-            title: "No"
+          action: "go-home",
+          title: "No"
         }
       ],
-      vibrate : [300, 100, 400]
+      vibrate: [300, 100, 400]
     })
   )
 })
 
 self.addEventListener('notificationclick', function (event) {
   event.notification.close()
+  if (navigator.setAppBadge) {
+    countPush = 0
+    navigator.setAppBadge(0)
+  }
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
       if (clientList.length > 0) {
@@ -69,12 +78,12 @@ self.addEventListener('notificationclick', function (event) {
   )
 })
 
- self.addEventListener('pushsubscriptionchange', function(event) {
-   event.waitUntil(
-       Promise.all([
-           Promise.resolve(event.oldSubscription ? deleteSubscription(event.oldSubscription) : true),
-           Promise.resolve(event.newSubscription ? event.newSubscription : subscribePush(registration))
-               .then(function(sub) { return saveSubscription(sub) })
-       ])
-   )
- })
+self.addEventListener('pushsubscriptionchange', function (event) {
+  event.waitUntil(
+    Promise.all([
+      Promise.resolve(event.oldSubscription ? deleteSubscription(event.oldSubscription) : true),
+      Promise.resolve(event.newSubscription ? event.newSubscription : subscribePush(registration))
+        .then(function (sub) { return saveSubscription(sub) })
+    ])
+  )
+})

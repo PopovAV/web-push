@@ -20,6 +20,11 @@ const WebauthExt: NextPage = function () {
 
         let paymentUrl = `${location.protocol}/payment`
 
+        if(location.search!=""){
+            console.log(location.search.substring(1))
+            setUrl(location.search.substring(1))
+        }
+
         if (paymentUrl != null)
             setUrl(paymentUrl)
 
