@@ -77,6 +77,14 @@ async function sendResponse(response: SendResult, res: NextApiResponse) {
 
 async function Notification(req: NextApiRequest, res: NextApiResponse) {
 
+  let crypto;
+  try {
+    const crypto = await import('node:crypto');
+    globalThis.crypto = crypto.webcrypto;
+  } catch (err) {
+    console.error('crypto support is disabled!');
+  }
+
   const { subscription } = req.body
 
   const { username } = req.query;
