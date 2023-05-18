@@ -241,10 +241,10 @@ const Webpin: NextPage = () => {
     }
 
     async function rotateKeys(event: any) {
-        const response = await fetch('/api/auth-opake/change_keys' ,{ method: "OPTIONS"} );
+        const response = await fetch('/api/auth-opake/change_keys', { method: "OPTIONS" });
         if (response.status == 200) {
             const result = await response.json();
-            AddLog("<-", result,true)
+            AddLog("<-", result, true)
             setLogInfo(logBugger)
             ShowResult("Ok");
         }
@@ -266,12 +266,11 @@ const Webpin: NextPage = () => {
                 label={text}
             />
             <Stack margin={"10%"}>
-                <TextField id="login" label="UseName" variant="standard" defaultValue={login} onChange={(e) => setLogin(e.target.value)} autoComplete='username' />
-                <TextField id="pin" label="Pin" variant="standard" onChange={(e) => setPin(e.target.value)} autoComplete={isRegistred ? "current-password" : 'new-password'} />
+                <TextField id="login" type="email" label="UseName" variant="standard" defaultValue={login} onChange={(e) => setLogin(e.target.value)} autoComplete='username' />
+                <TextField id="pin" type="password" label="Pin" variant="standard" onChange={(e) => setPin(e.target.value)} autoComplete={!isRegistred ? "current-password" : 'new-password'} />
                 <Button onClick={сlick}>Send</Button>
                 <Button onClick={rotateKeys}>RotateKeys</Button>
             </Stack>
-   
             <Snackbar
                 open={!!result}
                 autoHideDuration={10000}

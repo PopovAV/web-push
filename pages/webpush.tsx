@@ -4,7 +4,6 @@ import Button from '@mui/material/Button';
 import { Alert, Snackbar, Stack } from '@mui/material';
 
 import { useSession } from 'next-auth/react';
-import { NextPage } from 'next';
 
 import { authOptions } from './api/auth/[...nextauth]'
 import { getServerSession } from "next-auth/next"
@@ -100,7 +99,7 @@ const Index = () => {
     event.preventDefault()
     await subscription?.unsubscribe()
 
-    if (!!login) {
+    if (login.length>0) {
 
       const res = await fetch('/api/notification/' + login, {
         method: 'DELETE',

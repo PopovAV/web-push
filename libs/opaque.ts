@@ -18,7 +18,6 @@ const cfg = getOpaqueConfig(
 )
 
 import { KVStorage, toHex } from './store'
-import { CookieSerializeOptions } from 'next/dist/server/web/spec-extension/cookies'
 
 type EnvS = {
     KV: KVStorage
@@ -40,13 +39,19 @@ export interface FinishResp {
     message: string
 }
 
+async function getKey(username: string): Promise<string> {
+    const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(username))
+    return "opake:"+ Buffer.from(digest).toString('hex')
+  }
+
 async function register_init(request: NextApiRequest, env: EnvS): Promise<InitResp> {
     const requestJSON = request.body || {}
     const initSerialized = requestJSON['init']
     const client_identity = requestJSON['username'].trim()
     // username is also being used for this demo as server-side credential_identifier
     const credential_identifier = client_identity
-    if (await env.KV.get(credential_identifier, null)) {
+    const userid = await getKey(client_identity);
+    if (await env.KV.get(userid, null)) {
         throw new Error('username already registered')
     }
     const registrationRequest = RegistrationRequest.deserialize(cfg, initSerialized)
@@ -76,14 +81,16 @@ async function register_finish(request: NextApiRequest, env: EnvS): Promise<Fini
     const record = RegistrationRecord.deserialize(cfg, recordSerialized)
     const credential_file = new CredentialFile(credential_identifier, record, client_identity)
     // store in DB
+    const userid = await getKey(client_identity);
+
     let result
     if (env.PERMANENT) {
-        result = await env.KV.put(credential_identifier, credential_file.serialize(), null)
+        result = await env.KV.put(userid, credential_file.serialize(), null)
     }
     else {
-        result = await env.KV.put(credential_identifier, credential_file.serialize(), { expirationTtl: 3600 })
+        result = await env.KV.put(userid, credential_file.serialize(), { expirationTtl: 3600 })
     }
-    let retrieve = await env.KV.get(credential_identifier, null)
+    let retrieve = await env.KV.get(userid, null)
 
     return { username: client_identity, message: "'" + client_identity + "' registered" }
 }
@@ -94,35 +101,20 @@ export interface AuthInitResp {
     ke2: number[]
 }
 
-function setCookie(value:string| null, response: NextApiResponse){
-    let  options = {
-        httpOnly: true,
-        path: "/",
-    } as CookieSerializeOptions
-
-    if(value==null){
-        value =""
-        options.expires = new Date(-1000)
-    }
-   
-    const cookie = serialize("auth-cookie", value, options);
-    response.setHeader("Set-Cookie", cookie);
-}
-
-
 async function auth_init(request: any, env: EnvS, response: NextApiResponse): Promise<AuthInitResp> {
     const requestJSON = await request.body
     const initSerialized = requestJSON['ke1']
     const client_identity = requestJSON['username'].trim()
     // username is also being used for this demo as server-side credential_identifier  
     const credential_identifier = client_identity
-    const credentials_u8array = await env.KV.get(credential_identifier, { type: 'arrayBuffer' })
+    const userid = await getKey(client_identity);
+    const credentials_u8array = await env.KV.get(userid, { type: 'arrayBuffer' })
     if (credentials_u8array === null) {
         throw new Error('client not found in database')
     }
     const credential_file = CredentialFile.deserialize(cfg, credentials_u8array)
     if (credential_file.credential_identifier !== credential_identifier) {
-        throw new Error('credential identifier does not match KV key it was retrieved from')
+        throw new Error('credential identifier does not match key it was retrieved from')
     }
     if (credential_file.client_identity !== client_identity) {
         throw new Error('stored credentials file does not seem to match client')
@@ -151,19 +143,19 @@ async function auth_init(request: any, env: EnvS, response: NextApiResponse): Pr
 
     const session = expected.serialize();
 
-    const prevSession = await env.KV.get(client_identity + "-ss", null)
+    const prevSession = await env.KV.get(userid + "-ss", null)
     let error  = 0
     if(prevSession!=null){
         error = prevSession.error + 1
         
         if(error>1){
-           await  env.KV.del(client_identity + "-ss");
-           await  env.KV.del(client_identity);
+           await  env.KV.del(userid + "-ss");
+           await  env.KV.del(userid);
            throw new Error("Credential removed by error count 2")
         }
     }
 
-    await env.KV.put(client_identity + "-ss", { session , error}, null)
+    await env.KV.put(userid + "-ss", { session , error}, null)
 
     return { message: 'intermediate authentication key enclosed', ke2: ke2.serialize() }
 }
@@ -187,9 +179,9 @@ async function auth_finish(request: NextApiRequest, env: EnvS,  response: NextAp
     const ke3Serialized = requestJSON['ke3']
     const client_identity = requestJSON['username'].trim()
     // username is also being used for this demo as server-side credential_identifier
-    const credential_identifier = client_identity
+    const userid = await getKey(client_identity);
 
-    const credentials_u8array = await env.KV.get(credential_identifier, { type: 'arrayBuffer' })
+    const credentials_u8array = await env.KV.get(userid, { type: 'arrayBuffer' })
     if (credentials_u8array === null) {
         throw new Error('client not found in database, but in an actual implementation there would be no need to respond with that information.')
     }
@@ -201,7 +193,7 @@ async function auth_finish(request: NextApiRequest, env: EnvS,  response: NextAp
         server_identity
     )
     const ke3 = KE3.deserialize(cfg, ke3Serialized)
-    const expectedJSON =   await env.KV.get(client_identity + "-ss",null)
+    const expectedJSON =   await env.KV.get(userid + "-ss",null)
     if (!expectedJSON) {
         throw new Error('auth_init expected values not found for this client')
     }
@@ -212,7 +204,7 @@ async function auth_finish(request: NextApiRequest, env: EnvS,  response: NextAp
         throw authFinish
     }
 
-    await env.KV.del(client_identity + "-ss")
+    await env.KV.del(userid + "-ss")
 
     const { session_key: session_key_server } = authFinish
 
