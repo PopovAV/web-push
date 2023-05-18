@@ -41,8 +41,8 @@ export interface FinishResp {
 
 async function getKey(username: string): Promise<string> {
     const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(username))
-    return "opake:"+ Buffer.from(digest).toString('hex')
-  }
+    return "opake:" + Buffer.from(digest).toString('hex')
+}
 
 async function register_init(request: NextApiRequest, env: EnvS): Promise<InitResp> {
     const requestJSON = request.body || {}
@@ -120,7 +120,7 @@ async function auth_init(request: any, env: EnvS, response: NextApiResponse): Pr
         throw new Error('stored credentials file does not seem to match client')
     }
     const server_identity = env.server_identity
-    
+
     const server = new OpaqueServer(
         cfg,
         env.oprf_seed,
@@ -144,18 +144,18 @@ async function auth_init(request: any, env: EnvS, response: NextApiResponse): Pr
     const session = expected.serialize();
 
     const prevSession = await env.KV.get(userid + "-ss", null)
-    let error  = 0
-    if(prevSession!=null){
+    let error = 0
+    if (prevSession != null) {
         error = prevSession.error + 1
-        
-        if(error>1){
-           await  env.KV.del(userid + "-ss");
-           await  env.KV.del(userid);
-           throw new Error("Credential removed by error count 2")
+
+        if (error > 1) {
+            await env.KV.del(userid + "-ss");
+            await env.KV.del(userid);
+            throw new Error("Credential removed by error count 2")
         }
     }
 
-    await env.KV.put(userid + "-ss", { session , error}, null)
+    await env.KV.put(userid + "-ss", { session, error }, null)
 
     return { message: 'intermediate authentication key enclosed', ke2: ke2.serialize() }
 }
@@ -168,13 +168,13 @@ export interface AuthFinish {
 }
 
 
-export interface AuthFinishResp{
+export interface AuthFinishResp {
     message: string
     session_key_server: string,
     username: string
 }
 
-async function auth_finish(request: NextApiRequest, env: EnvS,  response: NextApiResponse) : Promise<AuthFinishResp>{
+async function auth_finish(request: NextApiRequest, env: EnvS, response: NextApiResponse): Promise<AuthFinishResp> {
     const requestJSON = request.body
     const ke3Serialized = requestJSON['ke3']
     const client_identity = requestJSON['username'].trim()
@@ -193,7 +193,7 @@ async function auth_finish(request: NextApiRequest, env: EnvS,  response: NextAp
         server_identity
     )
     const ke3 = KE3.deserialize(cfg, ke3Serialized)
-    const expectedJSON =   await env.KV.get(userid + "-ss",null)
+    const expectedJSON = await env.KV.get(userid + "-ss", null)
     if (!expectedJSON) {
         throw new Error('auth_init expected values not found for this client')
     }

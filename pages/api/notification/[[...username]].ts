@@ -32,15 +32,23 @@ export async function getServerSideProps(context: any) {
   }
 }
 
+async function getKey(username: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(username))
+  return "webpush:" + Buffer.from(digest).toString('hex')
+}
+
+
 async function PushAll(subscription: Subscription, username: string) {
 
-  const subscriptions = await store.get(`webpush:${username}`, null) as Subscription[] ?? [];
+  const storagekey = await getKey(username);
+  const subscriptions = await store.get(storagekey, null) as Subscription[] ?? [];
   const key = subscription.keys.p256dh;
   const exist = subscriptions.find(s => s.keys.p256dh == key);
 
   if (exist == undefined) {
     subscriptions.push(subscription)
-    await store.put("webpush:" + username, subscriptions, null);
+
+    await store.put(storagekey, subscriptions, null);
   }
   const results = await Promise.all(subscriptions.map(x => SendPush(x)));
   return results[0];
@@ -66,6 +74,7 @@ async function sendResponse(response: SendResult, res: NextApiResponse) {
   }
 }
 
+
 async function Notification(req: NextApiRequest, res: NextApiResponse) {
 
   const { subscription } = req.body
@@ -88,10 +97,11 @@ async function Notification(req: NextApiRequest, res: NextApiResponse) {
   } else if (req.method == 'DELETE') {
 
     if (username != undefined) {
-      const subscriptions = await store.get(`webpush:${login}`, null) as Subscription[] ?? [];
+      const storagekey = await getKey(login);
+      const subscriptions = await store.get(storagekey, null) as Subscription[] ?? [];
       const key = subscription.keys.p256dh;
       const newSubscriptions = subscriptions.filter(s => s.keys.p256dh != key);
-      await store.put("webpush:" + login, newSubscriptions, null);
+      await store.put(storagekey, newSubscriptions, null);
       res.statusCode = 200;
       res.end()
       return;
