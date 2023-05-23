@@ -121,7 +121,4 @@ async function Notification(req: NextApiRequest, res: NextApiResponse) {
 
 }
 
-
-
-
 export default Notification;

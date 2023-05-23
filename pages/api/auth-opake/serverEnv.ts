@@ -1,4 +1,3 @@
-import getConfig from 'next/config';
 import { fromHex, KVStorage } from '../../../libs/store'
 import { getOpaqueConfig, OpaqueID } from '@cloudflare/opaque-ts';
 
@@ -14,10 +13,14 @@ const store = new KVStorage();
 
 async function GetEnv(changeKey: boolean = false) {
 
-  let skp = { private_key, public_key }
+  let stored_ake =  await store.get("opake:server_ake", null)
+
+
+  let skp = stored_ake ?? { private_key, public_key }
   if (changeKey) {
     const OpakeConfig = getOpaqueConfig(OpaqueID.OPAQUE_P256);
     skp = await OpakeConfig.ake.generateAuthKeyPair();
+    await store.put("opake:server_ake", skp)
   }
 
 
