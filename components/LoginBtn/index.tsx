@@ -2,11 +2,11 @@ import { Box, Button, Icon, Modal, Stack } from "@mui/material"
 import { BuiltInProviderType } from "next-auth/providers";
 import { useSession, signIn, signOut, getProviders, LiteralUnion, ClientSafeProvider } from "next-auth/react"
 import { useState } from "react";
-import Image from 'next/image';
+import { InterceptFetch } from "../../libs/fingerprint";
 
 
 const style = {
-    position: 'absolute' as 'absolute',
+    position: 'absolute',
     top: '50%',
     left: '50%',
     transform: 'translate(-50%, -50%)',
@@ -26,6 +26,7 @@ export default function Component() {
     const { data: session } = useSession()
     const [open, setOpen] = useState(false);
     const [providers, setProviders] = useState<Record<LiteralUnion<BuiltInProviderType>, ClientSafeProvider> | null>(null)
+    const [ deviceId, setDeviceId ] = useState<string|null>(null);
 
     const handleOpen = async () => {
         if (providers == null) {
@@ -34,6 +35,10 @@ export default function Component() {
         }
         setOpen(true);
     }
+
+    InterceptFetch(null)
+    .then((id)=>setDeviceId(id))
+    .catch((e)=> console.error(e))
 
     const handleClose = () => setOpen(false);
 

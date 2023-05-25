@@ -2,12 +2,16 @@ import type { NextPage } from "next";
 import Container from "../components/Container";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react"
+import { InterceptFetch } from "../libs/fingerprint";
+
+
 
 const Home: NextPage = () => {
 
   const [fingerprint, setFingerPrint] = useState("");
   const { data: session } = useSession();
   const [{ ua, uad }, setUserAgent] = useState({ ua: "", uad: "" });
+  const [devices, setDevices] = useState<string|null>(null);
 
   async function GetUserMedia(): Promise<string> {
     let deviceInfo = '';
@@ -32,6 +36,8 @@ const Home: NextPage = () => {
     return deviceInfo
   }
 
+
+
   useEffect(() => {
 
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -48,14 +54,32 @@ const Home: NextPage = () => {
         setUserAgent({ ua: navigator.userAgent, uad: luad });
       });
 
-      import('clientjs').then((m) => {
-        const client = new m.ClientJS();
-        const value = client.getFingerprint();
-        setFingerPrint(value.toString())
+      const Update = async () => {
+        const fp = await InterceptFetch(null)
+        if (fp != null) {
+          setFingerPrint(fp)
+        } else {
+          const im = import('clientjs')
+          const m = await im;
+          const client = new m.ClientJS();
+          const value = client.getFingerprint();
+          await InterceptFetch(value.toString())
+          setFingerPrint(value.toString())
+        }
+      };
 
-      });
+      Update();
+
+      const getDevices = async () => {
+        const res = await fetch("/api/devices")
+        setDevices(JSON.stringify(await res.json(), null,2))
+      }
+      if (session?.user && devices==null) {
+        getDevices();
+      }
+
     }
-  }, [fingerprint]);
+  }, [fingerprint, devices,session]);
 
   return (
 
@@ -69,6 +93,7 @@ const Home: NextPage = () => {
           <img src={session.user?.image ?? ""} alt={session.user?.email ?? ""} />
         </div>
       }
+       {!!devices && <pre>{devices}</pre>}
       {!!uad && <pre>{uad}</pre>}
     </Container>
   );

@@ -40,8 +40,6 @@ const Index = () => {
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | undefined>(undefined);
   const [login, setLogin] = useState(session?.user?.email ?? "");
 
-
-
   useEffect(() => {
 
     if (status === "authenticated") {
@@ -62,10 +60,8 @@ const Index = () => {
             setIsSubscribed(true)
           }
         })
-
       })
     }
-
 
   }, [update])
 
@@ -74,17 +70,27 @@ const Index = () => {
 
     if (registration == undefined) return
 
-    console.log(process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY);
-
     try {
       const sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: base64ToUint8Array(process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY ?? "")
       })
       if (sub != null) {
-        // TODO: you should call your API to save subscription data on server in order to send web push notification from server
+
         setSubscription(sub)
-        setIsSubscribed(true)
+        setIsSubscribed(true);
+
+        if (login.length>0) {
+          const response = await fetch('/api/notification/', {
+            method: 'PUT',
+            headers: {
+              'Content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              subscription : sub
+            })
+          })
+        }
         ShowResult('web push subscribed!')
       }
 
@@ -99,9 +105,9 @@ const Index = () => {
     event.preventDefault()
     await subscription?.unsubscribe()
 
-    if (login.length>0) {
+    if (login.length > 0) {
 
-      const res = await fetch('/api/notification/' + login, {
+      const res = await fetch('/api/notification/', {
         method: 'DELETE',
         headers: {
           'Content-type': 'application/json'
@@ -120,20 +126,16 @@ const Index = () => {
 
   const sendNotificationButtonOnClick = async (event: { preventDefault: () => void }) => {
     event.preventDefault()
-    if (subscription == null) {
-      ShowResult('web push not subscribed', true);
-      return
-    }
-
-    const response = await fetch('/api/notification/' + (login ? `${login}` : ''), {
-      method: 'POST',
-      headers: {
-        'Content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        subscription
+    const response = await fetch('/api/notification/',
+      {
+        method: 'POST',
+        headers: {
+          'Content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          subscription
+        })
       })
-    })
     if (response.status == 200)
       ShowResult("push sended")
     else {
@@ -166,7 +168,7 @@ const Index = () => {
         <Button onClick={unsubscribeButtonOnClick} disabled={!isSubscribed}>
           Unsubscribe
         </Button>
-        <Button onClick={sendNotificationButtonOnClick} disabled={!isSubscribed}>
+        <Button onClick={sendNotificationButtonOnClick} disabled={!isSubscribed && login == ""}>
           Send Notification
         </Button>
         <pre >{JSON.stringify(subscription, null, 2)}</pre >

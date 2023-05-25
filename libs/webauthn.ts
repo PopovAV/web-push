@@ -10,9 +10,9 @@ import {
   verifyRegistrationResponse,
 } from '@simplewebauthn/server';
 
-import { KVStorage, fromb64, fromb64url, tob64 } from './store'
+import {  fromb64, fromb64url, getStore, tob64 } from './store'
 
-const store = new KVStorage();
+const store = getStore();
 
 type UserModel = {
   id: string;
@@ -96,7 +96,7 @@ async function saveNewUserAuthenticatorInDB(user: UserModel, newAuthenticator: A
   await store.put("wan-auth-as:" + user.id, auths, null);
 }
 
-async function getUserId(username: string): Promise<string> {
+export async function getUserId(username: string): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(username))
   return Buffer.from(digest).toString('hex')
 }

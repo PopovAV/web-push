@@ -1,4 +1,6 @@
 import { Redis, RedisConfigNodejs } from '@upstash/redis'
+import exp from 'constants'
+
 
 
 export class KVStorage {
@@ -83,4 +85,10 @@ export function fromb64url(value: string) {
     }
     return value;
 
+}
+
+const store  = new KVStorage()
+
+export function getStore(){
+    return store;
 }
