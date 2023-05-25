@@ -11,7 +11,7 @@ export async function SaveOrUpdateDevice(userid: string, device: Device) {
 
     const key = `devices:${userid}`
     const devices = await store.get(key, null) as Device[] ??[];
-    const exist = devices.find(s => s.id = device.id);
+    const exist = devices.find(s => s.id == device.id);
     if (exist == undefined) {
         devices.push(device)
         await store.put(key, devices, null);
