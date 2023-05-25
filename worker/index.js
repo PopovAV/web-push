@@ -18,11 +18,6 @@ let payment_request_event;
 let resolver;
 let client;
 
-self.addEventListener("message", (event) =>{
-    console.log(`Message received: ${event.data}`);
-
-});
-
 // `self` is the global object in service worker
 self.addEventListener("paymentrequest", async (e) => {
   if (payment_request_event) {
