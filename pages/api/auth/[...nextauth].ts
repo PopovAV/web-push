@@ -49,7 +49,13 @@ export const authOptions: NextAuthOptions = {
           const userid = await getUserId(login)
           token.deviceid = deviceId;
           const { devices, isNew } = await SaveOrUpdateDevice(userid, { id: deviceId, useragent: userAgent });
+          try{
           await PushAll(login, `attention, you are logged in on another device ${deviceId} : ${userAgent}`, [deviceId])
+          }
+          catch(e:any){
+            console.error(e);
+          }
+
         }
       }
 

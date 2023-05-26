@@ -26,7 +26,7 @@ export default function Component() {
     const { data: session } = useSession()
     const [open, setOpen] = useState(false);
     const [providers, setProviders] = useState<Record<LiteralUnion<BuiltInProviderType>, ClientSafeProvider> | null>(null)
-    const [ deviceId, setDeviceId ] = useState<string|null>(null);
+    const [deviceId, setDeviceId] = useState<string | null>(null);
 
     const handleOpen = async () => {
         if (providers == null) {
@@ -37,11 +37,10 @@ export default function Component() {
     }
 
     InterceptFetch(null)
-    .then((id)=>setDeviceId(id))
-    .catch((e)=> console.error(e))
+        .then((id) => setDeviceId(id))
+        .catch((e) => console.error(e))
 
     const handleClose = () => setOpen(false);
-
 
     if (session) {
         return (
@@ -73,7 +72,6 @@ export default function Component() {
                                     size="large"
                                     onClick={() => signIn(provider.id)}
                                     startIcon={
-
                                         <img height="32px" src={getIcon(provider.id)} />
                                     } >
                                     Sign in with {provider.name}

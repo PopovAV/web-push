@@ -11,7 +11,7 @@ const Home: NextPage = () => {
   const [fingerprint, setFingerPrint] = useState("");
   const { data: session } = useSession();
   const [{ ua, uad }, setUserAgent] = useState({ ua: "", uad: "" });
-  const [devices, setDevices] = useState<string|null>(null);
+  const [devices, setDevices] = useState<string | null>(null);
 
   async function GetUserMedia(): Promise<string> {
     let deviceInfo = '';
@@ -72,28 +72,27 @@ const Home: NextPage = () => {
 
       const getDevices = async () => {
         const res = await fetch("/api/devices")
-        setDevices(JSON.stringify(await res.json(), null,2))
+        setDevices(JSON.stringify(await res.json(), null, 2))
       }
-      if (session?.user && devices==null) {
+      if (session?.user && devices == null) {
         getDevices();
       }
 
     }
-  }, [fingerprint, devices,session]);
+  }, [fingerprint, devices, session]);
 
   return (
 
     <Container title="Dashboard">
       <p>{ua}</p>
       <p>FingerPrint : {fingerprint}</p>
-      <a href="web+payment:/payment">Test Hander</a>
       {!!session &&
         <div>
           <p>{session.user?.name}</p>
           <img src={session.user?.image ?? ""} alt={session.user?.email ?? ""} />
         </div>
       }
-       {!!devices && <pre>{devices}</pre>}
+      {!!devices && <pre>{devices}</pre>}
       {!!uad && <pre>{uad}</pre>}
     </Container>
   );

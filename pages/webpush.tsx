@@ -47,20 +47,18 @@ const Index = () => {
     }
 
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      // run only in browser
-      navigator.serviceWorker.ready.then(reg => {
 
+      const updateSubscription = async () => {
+        const reg = await navigator.serviceWorker.ready;
         setRegistration(reg);
+        const sub = await reg.pushManager.getSubscription();
 
-        console.log('get sw registration')
-
-        reg.pushManager.getSubscription().then(sub => {
-          if (sub != null && !(sub.expirationTime && Date.now() > sub.expirationTime - 5 * 60 * 1000)) {
-            setSubscription(sub)
-            setIsSubscribed(true)
-          }
-        })
-      })
+        if (sub != null && !(sub.expirationTime && Date.now() > sub.expirationTime - 5 * 60 * 1000)) {
+          setSubscription(sub)
+          setIsSubscribed(true)
+        }
+      }
+      updateSubscription()
     }
 
   }, [update])
@@ -80,14 +78,14 @@ const Index = () => {
         setSubscription(sub)
         setIsSubscribed(true);
 
-        if (login.length>0) {
+        if (login.length > 0) {
           const response = await fetch('/api/notification/', {
             method: 'PUT',
             headers: {
               'Content-type': 'application/json'
             },
             body: JSON.stringify({
-              subscription : sub
+              subscription: sub
             })
           })
         }
