@@ -214,7 +214,6 @@ const Webpin: NextPage = () => {
 
         const encData = window.sessionStorage.getItem("encSessionData")
         if (encData) {
-            window.sessionStorage.removeItem("encSessionData")
             let { chipterText, iv } = JSON.parse(encData)
             if (chipterText != undefined) {
                 let key = await ImportKey(export_key)
