@@ -8,6 +8,7 @@ import { NextPage } from 'next';
 import { authOptions } from './api/auth/[...nextauth]'
 import { getServerSession } from "next-auth/next"
 import { tob64FromNumbers } from '../libs/store';
+import Progress from '../components/Progress';
 
 export async function getServerSideProps(context: any) {
     const session = await getServerSession(context.req, context.res, authOptions)
@@ -22,6 +23,8 @@ export async function getServerSideProps(context: any) {
 const WebAuthN: NextPage = () => {
 
     const { update, data: session, status } = useSession()
+    const [wait, setWait] = useState<boolean>(false);
+
 
     useEffect(() => {
         if (status === "authenticated") {
@@ -44,7 +47,7 @@ const WebAuthN: NextPage = () => {
         return value;
     }
 
-    const SwitchMode = async (event: { preventDefault: () => void }) => {
+    const SwitchMode = (event: { preventDefault: () => void }) => {
         event.preventDefault()
         let text = isRegistred ? "Login" : "Register"
         setIsRegistred({ isRegistred: !isRegistred, text: text })
@@ -54,14 +57,17 @@ const WebAuthN: NextPage = () => {
         let newResult = typeof res == "string" ? res : JSON.stringify(res, replacer, 2);
         setResult({ result: newResult, isError: !!error });
         console.log(res)
+        setWait(false)
     }
 
     async function сlick(event: { preventDefault: () => void; }) {
+        setWait(true)
         await (isRegistred ? sendReg(event) : sendLogin(event))
     }
 
     async function сlickRemoveKeys(event: { preventDefault: () => void; }) {
-        let asseResp;
+        
+        setWait(true);
         try {
             const resp = await fetch(`/api/authn/keys/${login}`, { method: 'DELETE' });
 
@@ -78,7 +84,7 @@ const WebAuthN: NextPage = () => {
         }
     }
     async function сlickGetKeys(event: { preventDefault: () => void; }) {
-
+        setWait(true);
         try {
             const resp = await fetch(`/api/authn/keys/${login}`);
 
@@ -87,7 +93,7 @@ const WebAuthN: NextPage = () => {
             }
 
             setKeyInfo(await resp.json())
-
+            ShowResult("")
         } catch (error: any) {
             // Some basic error handling
             ShowResult(error.messsage, true)
@@ -96,7 +102,6 @@ const WebAuthN: NextPage = () => {
     }
 
     async function sendReg(event: { preventDefault: () => void; }) {
-
         const resp = await fetch('/api/authn/get_reg_options/' + login, { cache: 'no-store' });
 
         let attResp;
@@ -136,7 +141,7 @@ const WebAuthN: NextPage = () => {
         const verificationJSON = await verificationResp.json();
 
         // Show UI appropriate for the `verified` status
-        if (verificationJSON && verificationJSON.verified) {
+        if (verificationJSON?.verified) {
             setKeyInfo(verificationJSON)
         } else {
             ShowResult(verificationJSON, true)
@@ -175,7 +180,7 @@ const WebAuthN: NextPage = () => {
         const verificationJSON = await verificationResp.json();
 
         // Show UI appropriate for the `verified` status
-        if (verificationJSON && verificationJSON.verified) {
+        if (verificationJSON?.verified) {
             ShowResult(verificationJSON)
         } else {
             ShowResult(verificationJSON, true)
@@ -199,11 +204,14 @@ const WebAuthN: NextPage = () => {
             <Stack margin={"10%"}>
                 <TextField id="login" label="UseName" variant="standard" defaultValue={login} onChange={(e) => setLogin(e.target.value)} />
                 <Button onClick={сlick}>Send</Button>
+                <Progress wait={wait}/>
                 <Box sx={{ mt: 10, border: "1px solid" }}>
                     <Button onClick={сlickGetKeys}>Get All Keys</Button>
                     <Button onClick={сlickRemoveKeys}>Remove All Keys</Button>
                 </Box>
+                
             </Stack>
+         
             {!!keyInfo && <pre >{JSON.stringify(keyInfo, replacer, 2)}</pre >}
             <Snackbar
                 open={!!result}

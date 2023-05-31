@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react'
 import Container from '../components/Container'
 import Button from '@mui/material/Button';
 import { Alert, Snackbar, Stack } from '@mui/material';
-
 import { useSession } from 'next-auth/react';
-
 import { authOptions } from './api/auth/[...nextauth]'
 import { getServerSession } from "next-auth/next"
+import Progress from '../components/Progress';
 
 
 const base64ToUint8Array = (base64: string | any[]) => {
@@ -39,6 +38,8 @@ const Index = () => {
   const [subscription, setSubscription] = useState<PushSubscription | undefined>(undefined);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | undefined>(undefined);
   const [login, setLogin] = useState(session?.user?.email ?? "");
+  const [wait, setWait] = useState<boolean>(true);
+
 
   useEffect(() => {
 
@@ -56,6 +57,7 @@ const Index = () => {
         if (sub != null && !(sub.expirationTime && Date.now() > sub.expirationTime - 5 * 60 * 1000)) {
           setSubscription(sub)
           setIsSubscribed(true)
+          setWait(false)
         }
       }
       updateSubscription()
@@ -74,7 +76,7 @@ const Index = () => {
         applicationServerKey: base64ToUint8Array(process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY ?? "")
       })
       if (sub != null) {
-
+        setWait(true)
         setSubscription(sub)
         setIsSubscribed(true);
 
@@ -101,6 +103,7 @@ const Index = () => {
 
   const unsubscribeButtonOnClick = async (event: { preventDefault: () => void }) => {
     event.preventDefault()
+    setWait(true)
     await subscription?.unsubscribe()
 
     if (login.length > 0) {
@@ -124,6 +127,7 @@ const Index = () => {
 
   const sendNotificationButtonOnClick = async (event: { preventDefault: () => void }) => {
     event.preventDefault()
+    setWait(true)
     const response = await fetch('/api/notification/',
       {
         method: 'POST',
@@ -155,6 +159,7 @@ const Index = () => {
       }
     }
     setResult({ result: newResult, isError: !!error });
+    setWait(false)
   }
 
   return (
@@ -169,9 +174,10 @@ const Index = () => {
         <Button onClick={sendNotificationButtonOnClick} disabled={!isSubscribed && login == ""}>
           Send Notification
         </Button>
+        <Progress wait={wait}/>
         <pre >{JSON.stringify(subscription, null, 2)}</pre >
-
       </Stack>
+      
       <Snackbar
         open={!!result}
         autoHideDuration={6000}

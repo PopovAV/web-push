@@ -3,6 +3,8 @@ import Container from "../components/Container";
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react"
 import { InterceptFetch } from "../libs/fingerprint";
+import { Fade, LinearProgress } from "@mui/material";
+import Progress from "../components/Progress";
 
 
 
@@ -12,6 +14,7 @@ const Home: NextPage = () => {
   const { data: session } = useSession();
   const [{ ua, uad }, setUserAgent] = useState({ ua: "", uad: "" });
   const [devices, setDevices] = useState<string | null>(null);
+  const [wait, setWait] = useState<boolean>(true);
 
   async function GetUserMedia(): Promise<string> {
     let deviceInfo = '';
@@ -35,8 +38,7 @@ const Home: NextPage = () => {
     }
     return deviceInfo
   }
-
-
+ 
 
   useEffect(() => {
 
@@ -73,6 +75,7 @@ const Home: NextPage = () => {
       const getDevices = async () => {
         const res = await fetch("/api/devices")
         setDevices(JSON.stringify(await res.json(), null, 2))
+        setWait(false)
       }
       if (session?.user && devices == null) {
         getDevices();
@@ -84,6 +87,7 @@ const Home: NextPage = () => {
   return (
 
     <Container title="Dashboard">
+      <Progress wait={wait}/>
       <p>{ua}</p>
       <p>FingerPrint : {fingerprint}</p>
       {!!session &&

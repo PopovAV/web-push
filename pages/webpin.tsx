@@ -19,6 +19,7 @@ import { authOptions } from './api/auth/[...nextauth]'
 import { getServerSession } from "next-auth/next"
 import { ImportKey, aesDecrypt, aesEncrypt } from '../libs/cryptoext';
 import { toHexFromNumbers } from '../libs/store';
+import Progress from '../components/Progress';
 
 export async function getServerSideProps(context: any) {
     const session = await getServerSession(context.req, context.res, authOptions)
@@ -34,6 +35,7 @@ const Webpin: NextPage = () => {
 
     const server_identity = 'PWA OPAQUE demo'
     const { update, data: session, status } = useSession();
+    const [wait, setWait] = useState<boolean>(true);
 
     useEffect(() => {
 
@@ -63,6 +65,7 @@ const Webpin: NextPage = () => {
     const ShowResult = (res: any, error: boolean = false) => {
         let newResult = typeof res == "string" ? res : JSON.stringify(res, null, 2);
         setResult({ result: newResult, isError: !!error });
+        setWait(false)
     }
 
     const AddLog = (dir: string, message: any, final: boolean = false) => {
@@ -270,6 +273,7 @@ const Webpin: NextPage = () => {
                 <TextField id="pin" type="password" label="Pin" variant="standard" onChange={(e) => setPin(e.target.value)} autoComplete={!isRegistred ? "current-password" : 'new-password'} />
                 <Button onClick={сlick}>Send</Button>
                 <Button onClick={rotateKeys}>RotateKeys</Button>
+                <Progress wait={wait}/>
             </Stack>
             <Snackbar
                 open={!!result}
@@ -279,6 +283,7 @@ const Webpin: NextPage = () => {
                     {result}
                 </Alert>
             </Snackbar>
+            
             {!!logInfo && <pre >{logInfo}</pre >}
         </Container>
     )
