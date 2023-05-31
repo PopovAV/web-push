@@ -35,7 +35,12 @@ const Webpin: NextPage = () => {
 
     const server_identity = 'PWA OPAQUE demo'
     const { update, data: session, status } = useSession();
-    const [wait, setWait] = useState<boolean>(true);
+    const [wait, setWait] = useState<boolean>(false);
+    const [{ isRegistred, text }, setIsRegistred] = useState({ isRegistred: false, text: "Login" })
+    const [pin, setPin] = useState("");
+    const [login, setLogin] = useState(session?.user?.email ?? "");
+    const [{ result, isError }, setResult] = useState({ result: "", isError: false });
+    const [logInfo, setLogInfo] = useState<any>(null);
 
     useEffect(() => {
 
@@ -46,11 +51,6 @@ const Webpin: NextPage = () => {
     }, [update])
 
 
-    const [{ isRegistred, text }, setIsRegistred] = useState({ isRegistred: false, text: "Login" })
-    const [pin, setPin] = useState("");
-    const [login, setLogin] = useState(session?.user?.email ?? "");
-    const [{ result, isError }, setResult] = useState({ result: "", isError: false });
-    const [logInfo, setLogInfo] = useState<any>(null);
 
     let logBugger = logInfo ?? ""
 
