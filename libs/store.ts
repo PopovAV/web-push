@@ -1,4 +1,4 @@
-import { Redis, RedisConfigNodejs } from '@upstash/redis'
+import { Redis } from '@upstash/redis'
 import exp from 'constants'
 
 
@@ -8,11 +8,7 @@ export class KVStorage {
     redis: Redis
 
     constructor() {
-        let config: RedisConfigNodejs = {
-            url: process.env.UPSTASH_REDIS_REST_URL ?? "",
-            token: process.env.UPSTASH_REDIS_REST_TOKEN ?? ""
-        }
-        this.redis = new Redis(config);
+        this.redis  = Redis.fromEnv();
     }
 
     async get(k: string, prop: any | null): Promise<any | null> {
